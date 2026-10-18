@@ -4,6 +4,11 @@ import Foundation
 public struct LiveThroughput: Hashable, Sendable {
     public var downstreamMbps: Double
     public var upstreamMbps: Double
+
+    public init(downstreamMbps: Double, upstreamMbps: Double) {
+        self.downstreamMbps = downstreamMbps
+        self.upstreamMbps = upstreamMbps
+    }
 }
 
 /// Reads a complete `HouseholdSnapshot` from a FRITZ!Box.
