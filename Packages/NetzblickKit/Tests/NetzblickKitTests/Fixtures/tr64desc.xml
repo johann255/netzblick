@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<root xmlns="urn:dslforum-org:device-1-0">
+<specVersion><major>1</major><minor>0</minor></specVersion>
+<device>
+<deviceType>urn:dslforum-org:device:InternetGatewayDevice:1</deviceType>
+<friendlyName>FRITZ!Box 7590 AX</friendlyName>
+<manufacturer>AVM</manufacturer>
+<modelName>FRITZ!Box 7590 AX</modelName>
+<serviceList>
+<service><serviceType>urn:dslforum-org:service:DeviceInfo:1</serviceType><serviceId>urn:DeviceInfo-com:serviceId:DeviceInfo1</serviceId><controlURL>/upnp/control/deviceinfo</controlURL><eventSubURL>/upnp/control/deviceinfo</eventSubURL><SCPDURL>/deviceinfoSCPD.xml</SCPDURL></service>
+<service><serviceType>urn:dslforum-org:service:UserInterface:1</serviceType><serviceId>urn:UserInterface-com:serviceId:UserInterface1</serviceId><controlURL>/upnp/control/userif</controlURL><eventSubURL>/upnp/control/userif</eventSubURL><SCPDURL>/userifSCPD.xml</SCPDURL></service>
+<service><serviceType>urn:dslforum-org:service:Hosts:1</serviceType><serviceId>urn:LanDeviceHosts-com:serviceId:Hosts1</serviceId><controlURL>/upnp/control/hosts</controlURL><eventSubURL>/upnp/control/hosts</eventSubURL><SCPDURL>/hostsSCPD.xml</SCPDURL></service>
+</serviceList>
+<deviceList>
+<device>
+<deviceType>urn:dslforum-org:device:LANDevice:1</deviceType>
+<modelName>LANDevice</modelName>
+<serviceList>
+<service><serviceType>urn:dslforum-org:service:WLANConfiguration:1</serviceType><serviceId>urn:WLANConfiguration-com:serviceId:WLANConfiguration1</serviceId><controlURL>/upnp/control/wlanconfig1</controlURL><eventSubURL>/upnp/control/wlanconfig1</eventSubURL><SCPDURL>/wlanconfigSCPD.xml</SCPDURL></service>
+<service><serviceType>urn:dslforum-org:service:WLANConfiguration:2</serviceType><serviceId>urn:WLANConfiguration-com:serviceId:WLANConfiguration2</serviceId><controlURL>/upnp/control/wlanconfig2</controlURL><eventSubURL>/upnp/control/wlanconfig2</eventSubURL><SCPDURL>/wlanconfigSCPD.xml</SCPDURL></service>
+</serviceList>
+</device>
+<device>
+<deviceType>urn:dslforum-org:device:WANDevice:1</deviceType>
+<modelName>WANDevice</modelName>
+<serviceList>
+<service><serviceType>urn:dslforum-org:service:WANCommonInterfaceConfig:1</serviceType><serviceId>urn:WANCIfConfig-com:serviceId:WANCommonInterfaceConfig1</serviceId><controlURL>/upnp/control/wancommonifconfig1</controlURL><eventSubURL>/upnp/control/wancommonifconfig1</eventSubURL><SCPDURL>/wancommonifconfigSCPD.xml</SCPDURL></service>
+</serviceList>
+</device>
+</deviceList>
+</device>
+</root>

@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  kit-tests:
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Xcode auswählen
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.4.app \
+            || sudo xcode-select -s /Applications/Xcode.app \
+            || echo "::warning::Keiner der Xcode-Pfade existiert, es bleibt die Standardversion des Runners."
+          xcodebuild -version
+
+      - name: Swift-Tests (NetzblickKit)
+        working-directory: Packages/NetzblickKit
+        run: swift test
+
+  app-build:
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Xcode auswählen
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.4.app \
+            || sudo xcode-select -s /Applications/Xcode.app \
+            || echo "::warning::Keiner der Xcode-Pfade existiert, es bleibt die Standardversion des Runners."
+          xcodebuild -version
+
+      - name: XcodeGen und xcbeautify installieren
+        run: brew install xcodegen xcbeautify
+
+      - name: Xcode-Projekt generieren
+        run: xcodegen generate
+
+      - name: App für Simulator bauen
+        shell: bash
+        run: |
+          set -o pipefail
+          xcodebuild -project Netzblick.xcodeproj \
+            -scheme Netzblick \
+            -destination 'generic/platform=iOS Simulator' \
+            -configuration Debug \
+            build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            | xcbeautify

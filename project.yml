@@ -1,0 +1,114 @@
+name: Netzblick
+options:
+  bundleIdPrefix: com.johann255
+  deploymentTarget:
+    iOS: "17.0"
+  developmentLanguage: de
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.10"
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    TARGETED_DEVICE_FAMILY: "1"
+    DEVELOPMENT_TEAM: ""   # set your Apple team id locally
+
+packages:
+  NetzblickKit:
+    path: Packages/NetzblickKit
+
+targets:
+  Netzblick:
+    type: application
+    platform: iOS
+    sources:
+      - path: App
+    dependencies:
+      - package: NetzblickKit
+      - target: NetzblickWidgets
+    entitlements:
+      path: App/Netzblick.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.johann255.netzblick
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: Netzblick
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UILaunchScreen: {}
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        ITSAppUsesNonExemptEncryption: false
+        CFBundleURLTypes:
+          - CFBundleURLName: com.johann255.netzblick
+            CFBundleURLSchemes: [netzblick]
+        # TR-064 on port 49000 is plain HTTP inside the home network only.
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
+          NSExceptionDomains:
+            fritz.box:
+              NSExceptionAllowsInsecureHTTPLoads: true
+              NSIncludesSubdomains: false
+        NSLocalNetworkUsageDescription: "Netzblick liest über dein Heimnetz die Geräteliste deiner FRITZ!Box und erkennt Geräte wie Lautsprecher oder Drucker. Nichts davon verlässt dein iPhone."
+        NSBonjourServices:
+          - _airplay._tcp
+          - _raop._tcp
+          - _sonos._tcp
+          - _googlecast._tcp
+          - _spotify-connect._tcp
+          - _hap._tcp
+          - _matter._tcp
+          - _ipp._tcp
+          - _printer._tcp
+          - _smb._tcp
+          - _companion-link._tcp
+          - _http._tcp
+        UIAppFonts:
+          - InstrumentSerif-Regular.ttf
+          - InstrumentSerif-Italic.ttf
+          - Geist-Variable.ttf
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.johann255.netzblick
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+
+  NetzblickWidgets:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: Widgets
+      - path: App/Theme
+      - path: App/Resources/Fonts
+    dependencies:
+      - package: NetzblickKit
+      - sdk: WidgetKit.framework
+      - sdk: SwiftUI.framework
+    entitlements:
+      path: Widgets/NetzblickWidgets.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.johann255.netzblick
+    info:
+      path: Widgets/Info.plist
+      properties:
+        CFBundleDisplayName: Netzblick
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+        UIAppFonts:
+          - InstrumentSerif-Regular.ttf
+          - InstrumentSerif-Italic.ttf
+          - Geist-Variable.ttf
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.johann255.netzblick.widgets
+
+schemes:
+  Netzblick:
+    build:
+      targets:
+        Netzblick: all
+        NetzblickWidgets: all

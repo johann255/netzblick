@@ -1,0 +1,5 @@
+<?xml version="1.0" ?>
+<List>
+<Item><AssociatedDeviceIPAddress>192.168.178.20</AssociatedDeviceIPAddress><AssociatedDeviceMACAddress>DE:AD:BE:EF:00:01</AssociatedDeviceMACAddress><AssociatedDeviceGuest>0</AssociatedDeviceGuest><X_AVM-DE_Speed>58</X_AVM-DE_Speed><X_AVM-DE_SignalStrength>25</X_AVM-DE_SignalStrength></Item>
+<Item><AssociatedDeviceIPAddress>192.168.178.23</AssociatedDeviceIPAddress><AssociatedDeviceMACAddress>24:0a:c4:12:34:56</AssociatedDeviceMACAddress><AssociatedDeviceGuest>0</AssociatedDeviceGuest><X_AVM-DE_Speed>72</X_AVM-DE_Speed><X_AVM-DE_SignalStrength>55</X_AVM-DE_SignalStrength></Item>
+</List>

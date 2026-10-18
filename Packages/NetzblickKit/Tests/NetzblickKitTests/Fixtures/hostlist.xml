@@ -1,0 +1,8 @@
+<?xml version="1.0" ?>
+<List>
+<Item><Index>1</Index><IPAddress>192.168.178.20</IPAddress><MACAddress>DE:AD:BE:EF:00:01</MACAddress><Active>1</Active><HostName>iPad-Wohnzimmer</HostName><InterfaceType>802.11</InterfaceType><X_AVM-DE_Port>0</X_AVM-DE_Port><X_AVM-DE_Speed>58</X_AVM-DE_Speed><X_AVM-DE_Guest>0</X_AVM-DE_Guest></Item>
+<Item><Index>2</Index><IPAddress>192.168.178.21</IPAddress><MACAddress>94:9F:3E:00:00:02</MACAddress><Active>1</Active><HostName>Sonos-Kueche</HostName><InterfaceType>802.11</InterfaceType><X_AVM-DE_Guest>0</X_AVM-DE_Guest></Item>
+<Item><Index>3</Index><IPAddress>192.168.178.22</IPAddress><MACAddress>00:11:22:33:44:55</MACAddress><Active>1</Active><HostName>Samsung-TV</HostName><InterfaceType>Ethernet</InterfaceType><X_AVM-DE_Guest>0</X_AVM-DE_Guest></Item>
+<Item><Index>4</Index><IPAddress>192.168.179.5</IPAddress><MACAddress>66:77:88:99:AA:BB</MACAddress><Active>0</Active><HostName>Gast-Laptop</HostName><InterfaceType>802.11</InterfaceType><X_AVM-DE_Guest>1</X_AVM-DE_Guest></Item>
+<Item><Index>5</Index><IPAddress>192.168.178.23</IPAddress><MACAddress>24:0A:C4:12:34:56</MACAddress><Active>1</Active><HostName></HostName><InterfaceType>802.11</InterfaceType><X_AVM-DE_Guest>0</X_AVM-DE_Guest></Item>
+</List>
