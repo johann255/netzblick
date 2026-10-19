@@ -1,0 +1,801 @@
+{
+ "version": 1,
+ "note": "Von Netzblick selbst zusammengestellt. Längster passender Suffix gewinnt; tracking vor vendor bei gleicher Länge.",
+ "ignore": [
+  "local",
+  "arpa",
+  "fritz.box",
+  "home.arpa",
+  "lan",
+  "localdomain",
+  "fritz.nas",
+  "myfritz.box"
+ ],
+ "entries": [
+  {
+   "suffix": "doubleclick.net",
+   "group": "tracking",
+   "owner": "Google"
+  },
+  {
+   "suffix": "googlesyndication.com",
+   "group": "tracking",
+   "owner": "Google"
+  },
+  {
+   "suffix": "googleadservices.com",
+   "group": "tracking",
+   "owner": "Google"
+  },
+  {
+   "suffix": "google-analytics.com",
+   "group": "tracking",
+   "owner": "Google"
+  },
+  {
+   "suffix": "googletagmanager.com",
+   "group": "tracking",
+   "owner": "Google"
+  },
+  {
+   "suffix": "googletagservices.com",
+   "group": "tracking",
+   "owner": "Google"
+  },
+  {
+   "suffix": "app-measurement.com",
+   "group": "tracking",
+   "owner": "Google"
+  },
+  {
+   "suffix": "adservice.google.com",
+   "group": "tracking",
+   "owner": "Google"
+  },
+  {
+   "suffix": "pagead2.googlesyndication.com",
+   "group": "tracking",
+   "owner": "Google"
+  },
+  {
+   "suffix": "firebase-settings.crashlytics.com",
+   "group": "tracking",
+   "owner": "Google"
+  },
+  {
+   "suffix": "graph.facebook.com",
+   "group": "tracking",
+   "owner": "Meta"
+  },
+  {
+   "suffix": "connect.facebook.net",
+   "group": "tracking",
+   "owner": "Meta"
+  },
+  {
+   "suffix": "an.facebook.com",
+   "group": "tracking",
+   "owner": "Meta"
+  },
+  {
+   "suffix": "pixel.facebook.com",
+   "group": "tracking",
+   "owner": "Meta"
+  },
+  {
+   "suffix": "amazon-adsystem.com",
+   "group": "tracking",
+   "owner": "Amazon"
+  },
+  {
+   "suffix": "device-metrics-us.amazon.com",
+   "group": "tracking",
+   "owner": "Amazon"
+  },
+  {
+   "suffix": "device-metrics-us-2.amazon.com",
+   "group": "tracking",
+   "owner": "Amazon"
+  },
+  {
+   "suffix": "aax-eu.amazon-adsystem.com",
+   "group": "tracking",
+   "owner": "Amazon"
+  },
+  {
+   "suffix": "ads.msn.com",
+   "group": "tracking",
+   "owner": "Microsoft"
+  },
+  {
+   "suffix": "bat.bing.com",
+   "group": "tracking",
+   "owner": "Microsoft"
+  },
+  {
+   "suffix": "clarity.ms",
+   "group": "tracking",
+   "owner": "Microsoft"
+  },
+  {
+   "suffix": "vortex.data.microsoft.com",
+   "group": "tracking",
+   "owner": "Microsoft"
+  },
+  {
+   "suffix": "settings-win.data.microsoft.com",
+   "group": "tracking",
+   "owner": "Microsoft"
+  },
+  {
+   "suffix": "telemetry.microsoft.com",
+   "group": "tracking",
+   "owner": "Microsoft"
+  },
+  {
+   "suffix": "samsungads.com",
+   "group": "tracking",
+   "owner": "Samsung"
+  },
+  {
+   "suffix": "samsungacr.com",
+   "group": "tracking",
+   "owner": "Samsung"
+  },
+  {
+   "suffix": "ad.samsungadhub.com",
+   "group": "tracking",
+   "owner": "Samsung"
+  },
+  {
+   "suffix": "log-config.samsungacr.com",
+   "group": "tracking",
+   "owner": "Samsung"
+  },
+  {
+   "suffix": "lgad.cjpowercast.com",
+   "group": "tracking",
+   "owner": "LG"
+  },
+  {
+   "suffix": "ngfts.lge.com",
+   "group": "tracking",
+   "owner": "LG"
+  },
+  {
+   "suffix": "lgtvsdp.com",
+   "group": "tracking",
+   "owner": "LG"
+  },
+  {
+   "suffix": "ads.roku.com",
+   "group": "tracking",
+   "owner": "Roku"
+  },
+  {
+   "suffix": "logs.roku.com",
+   "group": "tracking",
+   "owner": "Roku"
+  },
+  {
+   "suffix": "tracking.miui.com",
+   "group": "tracking",
+   "owner": "Xiaomi"
+  },
+  {
+   "suffix": "data.mistat.xiaomi.com",
+   "group": "tracking",
+   "owner": "Xiaomi"
+  },
+  {
+   "suffix": "api.ad.xiaomi.com",
+   "group": "tracking",
+   "owner": "Xiaomi"
+  },
+  {
+   "suffix": "metrics.data.hicloud.com",
+   "group": "tracking",
+   "owner": "Huawei"
+  },
+  {
+   "suffix": "logservice.hicloud.com",
+   "group": "tracking",
+   "owner": "Huawei"
+  },
+  {
+   "suffix": "adjust.com",
+   "group": "tracking",
+   "owner": "Adjust"
+  },
+  {
+   "suffix": "adjust.io",
+   "group": "tracking",
+   "owner": "Adjust"
+  },
+  {
+   "suffix": "appsflyer.com",
+   "group": "tracking",
+   "owner": "AppsFlyer"
+  },
+  {
+   "suffix": "appsflyersdk.com",
+   "group": "tracking",
+   "owner": "AppsFlyer"
+  },
+  {
+   "suffix": "app.link",
+   "group": "tracking",
+   "owner": "Branch"
+  },
+  {
+   "suffix": "branch.io",
+   "group": "tracking",
+   "owner": "Branch"
+  },
+  {
+   "suffix": "criteo.com",
+   "group": "tracking",
+   "owner": "Criteo"
+  },
+  {
+   "suffix": "criteo.net",
+   "group": "tracking",
+   "owner": "Criteo"
+  },
+  {
+   "suffix": "taboola.com",
+   "group": "tracking",
+   "owner": "Taboola"
+  },
+  {
+   "suffix": "outbrain.com",
+   "group": "tracking",
+   "owner": "Outbrain"
+  },
+  {
+   "suffix": "scorecardresearch.com",
+   "group": "tracking",
+   "owner": "Comscore"
+  },
+  {
+   "suffix": "unityads.unity3d.com",
+   "group": "tracking",
+   "owner": "Unity Ads"
+  },
+  {
+   "suffix": "applovin.com",
+   "group": "tracking",
+   "owner": "AppLovin"
+  },
+  {
+   "suffix": "applvn.com",
+   "group": "tracking",
+   "owner": "AppLovin"
+  },
+  {
+   "suffix": "supersonicads.com",
+   "group": "tracking",
+   "owner": "ironSource"
+  },
+  {
+   "suffix": "is.com",
+   "group": "tracking",
+   "owner": "ironSource"
+  },
+  {
+   "suffix": "chartboost.com",
+   "group": "tracking",
+   "owner": "Chartboost"
+  },
+  {
+   "suffix": "sentry.io",
+   "group": "tracking",
+   "owner": "Sentry"
+  },
+  {
+   "suffix": "mixpanel.com",
+   "group": "tracking",
+   "owner": "Mixpanel"
+  },
+  {
+   "suffix": "segment.io",
+   "group": "tracking",
+   "owner": "Segment"
+  },
+  {
+   "suffix": "segment.com",
+   "group": "tracking",
+   "owner": "Segment"
+  },
+  {
+   "suffix": "amplitude.com",
+   "group": "tracking",
+   "owner": "Amplitude"
+  },
+  {
+   "suffix": "nr-data.net",
+   "group": "tracking",
+   "owner": "New Relic"
+  },
+  {
+   "suffix": "braze.com",
+   "group": "tracking",
+   "owner": "Braze"
+  },
+  {
+   "suffix": "appboy.com",
+   "group": "tracking",
+   "owner": "Braze"
+  },
+  {
+   "suffix": "onesignal.com",
+   "group": "tracking",
+   "owner": "OneSignal"
+  },
+  {
+   "suffix": "mc.yandex.ru",
+   "group": "tracking",
+   "owner": "Yandex"
+  },
+  {
+   "suffix": "appmetrica.yandex.net",
+   "group": "tracking",
+   "owner": "Yandex"
+  },
+  {
+   "suffix": "analytics.tiktok.com",
+   "group": "tracking",
+   "owner": "TikTok"
+  },
+  {
+   "suffix": "ads.tiktok.com",
+   "group": "tracking",
+   "owner": "TikTok"
+  },
+  {
+   "suffix": "ct.pinterest.com",
+   "group": "tracking",
+   "owner": "Pinterest"
+  },
+  {
+   "suffix": "ads-api.twitter.com",
+   "group": "tracking",
+   "owner": "X"
+  },
+  {
+   "suffix": "analytics.twitter.com",
+   "group": "tracking",
+   "owner": "X"
+  },
+  {
+   "suffix": "smaato.net",
+   "group": "tracking",
+   "owner": "Smaato"
+  },
+  {
+   "suffix": "inmobi.com",
+   "group": "tracking",
+   "owner": "InMobi"
+  },
+  {
+   "suffix": "vungle.com",
+   "group": "tracking",
+   "owner": "Vungle"
+  },
+  {
+   "suffix": "moatads.com",
+   "group": "tracking",
+   "owner": "Moat"
+  },
+  {
+   "suffix": "adsafeprotected.com",
+   "group": "tracking",
+   "owner": "Integral Ad Science"
+  },
+  {
+   "suffix": "doubleverify.com",
+   "group": "tracking",
+   "owner": "DoubleVerify"
+  },
+  {
+   "suffix": "adnxs.com",
+   "group": "tracking",
+   "owner": "Xandr"
+  },
+  {
+   "suffix": "rubiconproject.com",
+   "group": "tracking",
+   "owner": "Rubicon"
+  },
+  {
+   "suffix": "pubmatic.com",
+   "group": "tracking",
+   "owner": "PubMatic"
+  },
+  {
+   "suffix": "openx.net",
+   "group": "tracking",
+   "owner": "OpenX"
+  },
+  {
+   "suffix": "adsrvr.org",
+   "group": "tracking",
+   "owner": "The Trade Desk"
+  },
+  {
+   "suffix": "quantserve.com",
+   "group": "tracking",
+   "owner": "Quantcast"
+  },
+  {
+   "suffix": "amazonalexa.com",
+   "group": "vendor",
+   "owner": "Amazon"
+  },
+  {
+   "suffix": "device-messaging-na.amazon.com",
+   "group": "vendor",
+   "owner": "Amazon"
+  },
+  {
+   "suffix": "alexa.amazon.com",
+   "group": "vendor",
+   "owner": "Amazon"
+  },
+  {
+   "suffix": "avs-alexa-eu.amazon.com",
+   "group": "vendor",
+   "owner": "Amazon"
+  },
+  {
+   "suffix": "api.amazonalexa.com",
+   "group": "vendor",
+   "owner": "Amazon"
+  },
+  {
+   "suffix": "fireoscaptiveportal.com",
+   "group": "vendor",
+   "owner": "Amazon"
+  },
+  {
+   "suffix": "amazonvideo.com",
+   "group": "vendor",
+   "owner": "Amazon"
+  },
+  {
+   "suffix": "prime-video.amazon.dev",
+   "group": "vendor",
+   "owner": "Amazon"
+  },
+  {
+   "suffix": "icloud.com",
+   "group": "vendor",
+   "owner": "Apple"
+  },
+  {
+   "suffix": "apple.com",
+   "group": "vendor",
+   "owner": "Apple"
+  },
+  {
+   "suffix": "mzstatic.com",
+   "group": "vendor",
+   "owner": "Apple"
+  },
+  {
+   "suffix": "apple-cloudkit.com",
+   "group": "vendor",
+   "owner": "Apple"
+  },
+  {
+   "suffix": "aaplimg.com",
+   "group": "vendor",
+   "owner": "Apple"
+  },
+  {
+   "suffix": "cdn-apple.com",
+   "group": "vendor",
+   "owner": "Apple"
+  },
+  {
+   "suffix": "push.apple.com",
+   "group": "vendor",
+   "owner": "Apple"
+  },
+  {
+   "suffix": "googleapis.com",
+   "group": "vendor",
+   "owner": "Google"
+  },
+  {
+   "suffix": "gstatic.com",
+   "group": "vendor",
+   "owner": "Google"
+  },
+  {
+   "suffix": "gvt1.com",
+   "group": "vendor",
+   "owner": "Google"
+  },
+  {
+   "suffix": "gvt2.com",
+   "group": "vendor",
+   "owner": "Google"
+  },
+  {
+   "suffix": "android.com",
+   "group": "vendor",
+   "owner": "Google"
+  },
+  {
+   "suffix": "googleusercontent.com",
+   "group": "vendor",
+   "owner": "Google"
+  },
+  {
+   "suffix": "nest.com",
+   "group": "vendor",
+   "owner": "Google"
+  },
+  {
+   "suffix": "home.nest.com",
+   "group": "vendor",
+   "owner": "Google"
+  },
+  {
+   "suffix": "samsungcloudsolution.com",
+   "group": "vendor",
+   "owner": "Samsung"
+  },
+  {
+   "suffix": "samsungcloud.com",
+   "group": "vendor",
+   "owner": "Samsung"
+  },
+  {
+   "suffix": "samsungosp.com",
+   "group": "vendor",
+   "owner": "Samsung"
+  },
+  {
+   "suffix": "samsungqbe.com",
+   "group": "vendor",
+   "owner": "Samsung"
+  },
+  {
+   "suffix": "samsungotn.net",
+   "group": "vendor",
+   "owner": "Samsung"
+  },
+  {
+   "suffix": "samsungelectronics.com",
+   "group": "vendor",
+   "owner": "Samsung"
+  },
+  {
+   "suffix": "smartthings.com",
+   "group": "vendor",
+   "owner": "Samsung"
+  },
+  {
+   "suffix": "sonos.com",
+   "group": "vendor",
+   "owner": "Sonos"
+  },
+  {
+   "suffix": "ws.sonos.com",
+   "group": "vendor",
+   "owner": "Sonos"
+  },
+  {
+   "suffix": "tuyaeu.com",
+   "group": "vendor",
+   "owner": "Tuya"
+  },
+  {
+   "suffix": "tuyaus.com",
+   "group": "vendor",
+   "owner": "Tuya"
+  },
+  {
+   "suffix": "tuyacn.com",
+   "group": "vendor",
+   "owner": "Tuya"
+  },
+  {
+   "suffix": "tuya.com",
+   "group": "vendor",
+   "owner": "Tuya"
+  },
+  {
+   "suffix": "espressif.com",
+   "group": "vendor",
+   "owner": "Espressif"
+  },
+  {
+   "suffix": "xiaomi.com",
+   "group": "vendor",
+   "owner": "Xiaomi"
+  },
+  {
+   "suffix": "mi.com",
+   "group": "vendor",
+   "owner": "Xiaomi"
+  },
+  {
+   "suffix": "xiaomi.net",
+   "group": "vendor",
+   "owner": "Xiaomi"
+  },
+  {
+   "suffix": "io.mi.com",
+   "group": "vendor",
+   "owner": "Xiaomi"
+  },
+  {
+   "suffix": "roborock.com",
+   "group": "vendor",
+   "owner": "Roborock"
+  },
+  {
+   "suffix": "meethue.com",
+   "group": "vendor",
+   "owner": "Philips Hue"
+  },
+  {
+   "suffix": "reolink.com",
+   "group": "vendor",
+   "owner": "Reolink"
+  },
+  {
+   "suffix": "ring.com",
+   "group": "vendor",
+   "owner": "Ring"
+  },
+  {
+   "suffix": "synology.com",
+   "group": "vendor",
+   "owner": "Synology"
+  },
+  {
+   "suffix": "quickconnect.to",
+   "group": "vendor",
+   "owner": "Synology"
+  },
+  {
+   "suffix": "hpeprint.com",
+   "group": "vendor",
+   "owner": "HP"
+  },
+  {
+   "suffix": "hp.com",
+   "group": "vendor",
+   "owner": "HP"
+  },
+  {
+   "suffix": "hpsmart.com",
+   "group": "vendor",
+   "owner": "HP"
+  },
+  {
+   "suffix": "windowsupdate.com",
+   "group": "vendor",
+   "owner": "Microsoft"
+  },
+  {
+   "suffix": "update.microsoft.com",
+   "group": "vendor",
+   "owner": "Microsoft"
+  },
+  {
+   "suffix": "msftconnecttest.com",
+   "group": "vendor",
+   "owner": "Microsoft"
+  },
+  {
+   "suffix": "msftncsi.com",
+   "group": "vendor",
+   "owner": "Microsoft"
+  },
+  {
+   "suffix": "playstation.net",
+   "group": "vendor",
+   "owner": "Sony"
+  },
+  {
+   "suffix": "playstation.com",
+   "group": "vendor",
+   "owner": "Sony"
+  },
+  {
+   "suffix": "sonyentertainmentnetwork.com",
+   "group": "vendor",
+   "owner": "Sony"
+  },
+  {
+   "suffix": "nintendo.net",
+   "group": "vendor",
+   "owner": "Nintendo"
+  },
+  {
+   "suffix": "nintendo.com",
+   "group": "vendor",
+   "owner": "Nintendo"
+  },
+  {
+   "suffix": "lgtvcommon.com",
+   "group": "vendor",
+   "owner": "LG"
+  },
+  {
+   "suffix": "lge.com",
+   "group": "vendor",
+   "owner": "LG"
+  },
+  {
+   "suffix": "lgthinq.com",
+   "group": "vendor",
+   "owner": "LG"
+  },
+  {
+   "suffix": "roku.com",
+   "group": "vendor",
+   "owner": "Roku"
+  },
+  {
+   "suffix": "netatmo.net",
+   "group": "vendor",
+   "owner": "Netatmo"
+  },
+  {
+   "suffix": "netatmo.com",
+   "group": "vendor",
+   "owner": "Netatmo"
+  },
+  {
+   "suffix": "tado.com",
+   "group": "vendor",
+   "owner": "tado"
+  },
+  {
+   "suffix": "shelly.cloud",
+   "group": "vendor",
+   "owner": "Shelly"
+  },
+  {
+   "suffix": "avm.de",
+   "group": "vendor",
+   "owner": "AVM"
+  },
+  {
+   "suffix": "myfritz.net",
+   "group": "vendor",
+   "owner": "AVM"
+  },
+  {
+   "suffix": "bosch-smarthome.com",
+   "group": "vendor",
+   "owner": "Bosch"
+  },
+  {
+   "suffix": "boschtt-documents.com",
+   "group": "vendor",
+   "owner": "Bosch"
+  },
+  {
+   "suffix": "homematic-ip.com",
+   "group": "vendor",
+   "owner": "Homematic"
+  },
+  {
+   "suffix": "hicloud.com",
+   "group": "vendor",
+   "owner": "Huawei"
+  },
+  {
+   "suffix": "dbankcloud.com",
+   "group": "vendor",
+   "owner": "Huawei"
+  }
+ ]
+}

@@ -22,6 +22,17 @@ final class AppModel {
     var errorMessage: String?
     private(set) var lastSpeed: SpeedResult?
 
+    /// Last finished listening session; only counts, never packets.
+    private(set) var listenReport: ListenReport?
+    private(set) var isListening = false
+    /// Questions heard so far in the running session.
+    private(set) var listenHeard = 0
+    private(set) var listenEndsAt: Date?
+    /// Plain-German reason the last session failed.
+    var listenError: String?
+    private var listenTask: Task<Void, Never>?
+    private var listenTimer: Task<Void, Never>?
+
     private let keychain = KeychainStore()
     private let defaults = UserDefaults.standard
     private let engine = DiagnosisEngine()
@@ -31,6 +42,7 @@ final class AppModel {
         static let demoMode = "demoMode"
         static let knownDeviceIDs = "knownDeviceIDs"
         static let lastSpeed = "lastSpeed"
+        static let listenReport = "listenReport"
         static let bookedDownloadMbps = "bookedDownloadMbps"
         static let accentBlue = "accentBlue"
     }
@@ -38,6 +50,9 @@ final class AppModel {
     init() {
         if let data = defaults.data(forKey: Key.lastSpeed) {
             lastSpeed = try? JSONDecoder().decode(SpeedResult.self, from: data)
+        }
+        if let data = defaults.data(forKey: Key.listenReport) {
+            listenReport = try? JSONDecoder().decode(ListenReport.self, from: data)
         }
         if let saved = keychain.load() {
             mode = .live(host: saved.host)
@@ -66,6 +81,74 @@ final class AppModel {
 
     func device(id: String) -> Device? {
         snapshot?.devices.first { $0.id == id }
+    }
+
+    /// Name for a device id from a listening report, also for devices the box does not list.
+    func deviceName(id: String) -> String {
+        if let device = device(id: id) { return device.name }
+        if id.hasPrefix("ip:") { return "Unbekanntes Gerät (\(id.dropFirst(3)))" }
+        return "Unbekanntes Gerät"
+    }
+
+    var canListen: Bool {
+        currentRouter()?.capabilities.contains(.dnsListening) ?? false
+    }
+
+    // MARK: Listening
+
+    /// Listens for `duration` seconds or until `stopListening()`. Runs only while the app is open.
+    func startListening(duration: TimeInterval = 300) {
+        guard !isListening, let listener = currentListener() else { return }
+        let start = Date()
+        isListening = true
+        listenHeard = 0
+        listenError = nil
+        listenEndsAt = start.addingTimeInterval(duration)
+
+        listenTask = Task { [weak self] in
+            // Without a device list every question would show up as "Unbekanntes Gerät".
+            if self?.snapshot == nil { await self?.refresh() }
+            let devices = self?.snapshot?.devices ?? []
+            var recorder = ListenRecorder(devices: devices, startedAt: start)
+            var failure: Error?
+            do {
+                for try await query in listener.queries() {
+                    if recorder.record(query) { self?.listenHeard = recorder.heardCount }
+                }
+            } catch {
+                failure = error
+            }
+            self?.finishListening(recorder, error: failure)
+        }
+        listenTimer = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(duration))
+            guard !Task.isCancelled else { return }
+            self?.stopListening()
+        }
+    }
+
+    func stopListening() {
+        listenTimer?.cancel()
+        listenTask?.cancel()
+    }
+
+    private func finishListening(_ recorder: ListenRecorder, error: Error?) {
+        listenTimer?.cancel()
+        listenTask = nil
+        listenTimer = nil
+        isListening = false
+        listenEndsAt = nil
+        if let error {
+            listenError = (error as? LocalizedError)?.errorDescription ?? "Das Lauschen ist abgebrochen."
+        }
+        guard recorder.heardCount > 0 else {
+            if error == nil { listenError = "In dieser Zeit hat kein Gerät etwas angefragt." }
+            return
+        }
+        let report = recorder.report()
+        listenReport = report
+        defaults.set(try? JSONEncoder().encode(report), forKey: Key.listenReport)
+        writeWidgetSummary()
     }
 
     // MARK: Actions
@@ -145,11 +228,15 @@ final class AppModel {
     }
 
     func disconnect() {
+        stopListening()
         keychain.delete()
         defaults.set(false, forKey: Key.demoMode)
         snapshot = nil
         findings = []
         newDeviceIDs = []
+        // A report belongs to the network it was heard in.
+        listenReport = nil
+        defaults.removeObject(forKey: Key.listenReport)
         mode = .onboarding
         writeWidgetSummary()
     }
@@ -157,10 +244,11 @@ final class AppModel {
     /// Removes everything Netzblick stored on this iPhone.
     func deleteAll() {
         disconnect()
-        for key in [Key.knownDeviceIDs, Key.lastSpeed, Key.bookedDownloadMbps, Key.accentBlue, "appearance"] {
+        for key in [Key.knownDeviceIDs, Key.lastSpeed, Key.listenReport, Key.bookedDownloadMbps, Key.accentBlue, "appearance"] {
             defaults.removeObject(forKey: key)
         }
         lastSpeed = nil
+        listenReport = nil
         if let url = SharedContainer.summaryURL() {
             try? FileManager.default.removeItem(at: url)
         }
@@ -184,6 +272,19 @@ final class AppModel {
             return DemoRouter()
         case .live:
             return keychain.load().map(router(for:))
+        }
+    }
+
+    /// Where DNS questions come from in the current mode.
+    private func currentListener() -> (any DNSListener)? {
+        switch mode {
+        case .onboarding:
+            return nil
+        case .demo:
+            return DemoDNSListener()
+        case .live:
+            guard let saved = keychain.load() else { return nil }
+            return FritzDNSListener(host: saved.host, credentials: saved.credentials)
         }
     }
 
@@ -230,7 +331,7 @@ final class AppModel {
             lastSpeedMbps: lastSpeed?.downloadMbps,
             lastSpeedLevel: lastSpeedRating?.level,
             lastSpeedAt: lastSpeed?.measuredAt,
-            trackingShare: nil,
+            trackingShare: listenReport.flatMap { $0.total > 0 ? $0.share(.tracking) : nil },
             isDemo: isDemo
         )
         try? store.save(summary)

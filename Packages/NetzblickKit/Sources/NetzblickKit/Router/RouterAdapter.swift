@@ -22,7 +22,10 @@ public struct RouterCapabilities: OptionSet, Hashable, Sendable {
     /// Whether a firmware update is waiting.
     public static let firmwareStatus = RouterCapabilities(rawValue: 1 << 4)
 
-    public static let all: RouterCapabilities = [.devices, .wifiDetails, .lineStatus, .liveThroughput, .firmwareStatus]
+    /// Listening to which addresses devices ask for (DNS), via a packet capture.
+    public static let dnsListening = RouterCapabilities(rawValue: 1 << 5)
+
+    public static let all: RouterCapabilities = [.devices, .wifiDetails, .lineStatus, .liveThroughput, .firmwareStatus, .dnsListening]
 }
 
 /// Current traffic through the internet line, as reported by the router.

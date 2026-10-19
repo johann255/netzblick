@@ -11,6 +11,7 @@ let package = Package(
     targets: [
         .target(
             name: "NetzblickKit",
+            resources: [.process("Resources")],
             swiftSettings: [.enableExperimentalFeature("StrictConcurrency")]
         ),
         .testTarget(

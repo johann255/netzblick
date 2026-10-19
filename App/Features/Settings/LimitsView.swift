@@ -10,7 +10,7 @@ struct LimitsView: View {
                 "alle Geräte, die deine FRITZ!Box kennt, mit Name, Hersteller und Verbindungsart",
                 "wie gut dein WLAN funkt und wie schnell deine Leitung ist",
                 "beim Tempo-Test: wie viel am iPhone ankommt, gemessen über Measurement Lab (M-Lab)",
-                "im Lauschmodus (ab v1.1): wohin deine Geräte Anfragen schicken, nach Kategorien"
+                "im Lauschmodus: welche Adressen deine Geräte anfragen, sortiert nach Normal, Hersteller und Werbung & Tracking"
             ]
         ),
         (

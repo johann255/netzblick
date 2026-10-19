@@ -27,7 +27,13 @@ struct DeviceDetailView: View {
                     findingsSection(related)
                 }
 
+                if let listen = model.listenReport?.device(device.id) {
+                    listenSection(listen)
+                }
+
                 privacyCard
+            } else if let listen = model.listenReport?.device(deviceID) {
+                listenSection(listen)
             } else {
                 Text("Gerät nicht mehr im Netz.")
                     .font(.nbSans(16))
@@ -37,6 +43,59 @@ struct DeviceDetailView: View {
         .toolbarBackground(.hidden, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    // MARK: - Lauschmodus
+
+    @ViewBuilder
+    private func listenSection(_ listen: DeviceListen) -> some View {
+        let tracking = listen.share(.tracking)
+        NBCard {
+            VStack(alignment: .leading, spacing: 14) {
+                if let report = model.listenReport {
+                    Text("Lauschmodus · \(report.timeLabel)".uppercased())
+                        .font(.nbSans(12, weight: .semibold))
+                        .tracking(1.2)
+                        .foregroundStyle(Color.nbMuted)
+                }
+                Text(listenHeadline(total: listen.total, tracking: tracking))
+                    .font(.nbSerif(27))
+                    .foregroundStyle(Color.nbInk)
+                    .fixedSize(horizontal: false, vertical: true)
+                ListenShareBar(counts: listen.groupCounts, height: 12)
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+
+        VStack(alignment: .leading, spacing: 10) {
+            NBSectionTitle("Wohin es funkt")
+            NBCard {
+                VStack(spacing: 0) {
+                    ForEach(Array(listen.domains.prefix(12).enumerated()), id: \.element.id) { index, entry in
+                        if index > 0 { NBRowDivider() }
+                        DomainRow(entry: entry)
+                    }
+                    if listen.domains.count > 12 {
+                        NBRowDivider()
+                        Text("und \(listen.domains.count - 12) weitere Ziele")
+                            .font(.nbSans(13))
+                            .foregroundStyle(Color.nbMuted)
+                            .padding(16)
+                    }
+                }
+            }
+        }
+    }
+
+    private func listenHeadline(total: Int, tracking: Double) -> String {
+        let requests = total == 1 ? "1 Anfrage" : "\(total) Anfragen"
+        switch tracking {
+        case 0.5...: return "\(requests) ins Internet. Mehr als die Hälfte ging an Werbung und Tracking."
+        case 0.2..<0.5: return "\(requests) ins Internet. Ein guter Teil ging an Werbung und Tracking."
+        case 0.0001..<0.2: return "\(requests) ins Internet. Nur wenig davon an Werbung und Tracking."
+        default: return "\(requests) ins Internet, keine an bekannte Werbe- oder Tracking-Dienste."
+        }
     }
 
     // MARK: - Header
@@ -49,7 +108,7 @@ struct DeviceDetailView: View {
                 subtitle: device.category.title + " · " + device.connectionSummary
             )
         } else {
-            NBBlueHeader(title: "Gerät")
+            NBBlueHeader(title: model.deviceName(id: deviceID))
         }
     }
 

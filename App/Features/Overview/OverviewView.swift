@@ -43,6 +43,11 @@ struct OverviewView: View {
 
             NBSectionTitle("Hinweise")
             findingsCard
+
+            if model.canListen {
+                NBSectionTitle("Wer funkt nach außen?")
+                listenCard
+            }
         }
         .refreshable { await model.refresh() }
         .toolbar(.hidden, for: .navigationBar)
@@ -205,6 +210,52 @@ struct OverviewView: View {
             return "Hersteller: \(vendor)."
         }
         return "Hersteller unbekannt. Viele Handys nutzen private Adressen, das ist normal."
+    }
+
+    // MARK: - Lauschmodus
+
+    private var listenCard: some View {
+        NavigationLink {
+            ListenView()
+        } label: {
+            NBCard {
+                VStack(alignment: .leading, spacing: 12) {
+                    if let report = model.listenReport {
+                        HStack(alignment: .firstTextBaseline) {
+                            Text("Lauschmodus \(report.timeLabel) · Anfragen")
+                                .font(.nbSans(14))
+                                .foregroundStyle(Color.nbMuted)
+                            Spacer()
+                            Text(report.total.formatted(.number.locale(Locale(identifier: "de_DE"))))
+                                .font(.nbSerif(34))
+                                .foregroundStyle(Color.nbInk)
+                        }
+                        ListenShareBar(counts: report.groupCounts)
+                        if let chatter = report.biggestChatterbox {
+                            Rectangle().fill(Color.nbLine).frame(height: 1)
+                            Text("Größte Plaudertasche: **\(model.deviceName(id: chatter.deviceID))** →")
+                                .font(.nbSans(14))
+                                .foregroundStyle(Color.nbInk)
+                        }
+                    } else if model.isListening {
+                        Text("Lauscht gerade … \(model.listenHeard) Anfragen gehört")
+                            .font(.nbSans(15))
+                            .foregroundStyle(Color.nbInkSoft)
+                    } else {
+                        Text("Hör 5 Minuten mit, welche Adressen deine Geräte im Internet anfragen, und sieh, wer für Werbung und Tracking funkt.")
+                            .font(.nbSans(15))
+                            .foregroundStyle(Color.nbInkSoft)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text("Lauschmodus öffnen →")
+                            .font(.nbSans(14, weight: .semibold))
+                            .foregroundStyle(accent)
+                    }
+                }
+                .padding(16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Tempo
