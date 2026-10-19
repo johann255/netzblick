@@ -44,7 +44,10 @@ Technischer Aufbau und Regeln: siehe `ARCHITECTURE.md` (verbindlich).
    für alle anderen ein Basis-Modus (Bonjour + Tempo-Test).
 4. **Android**: Vorschlag „Daten statt Code teilen“ – Regeln, Herstellertabelle, Diagnose-Texte, Schwellen und
    Geräteprofile als JSON, gemeinsame Box-Fixtures als Testfälle, nativer Kotlin-Kern + Compose-UI.
-   Dafür vorab ein `RouterAdapter`-Protokoll im Kit. Johann hat noch nicht zugestimmt.
+   Johann hat noch nicht zugestimmt. Erster Schritt erledigt (19.10.2026): `RouterAdapter`-Protokoll im Kit
+   (`Router/RouterAdapter.swift`), `FritzBoxReader` und `DemoRouter` erfüllen es, `AppModel` kennt nur `any RouterAdapter`.
+   Offen: Zeitpunkt der JSON-Auslagerung (Empfehlung: nach v1.0). Einzige FRITZ!-Bindung oberhalb des Adapters
+   sind die Diagnose-Texte (`DiagnosisEngine`, „FRITZ!Box“/„fritz.box“) – die müssten pro Router austauschbar werden.
 
 ## Nächster Schritt
 
