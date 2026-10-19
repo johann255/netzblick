@@ -10,7 +10,8 @@ import CryptoKit
 public enum ListenError: Error, Equatable, LocalizedError {
     case loginFailed(blockSeconds: Int)
     case missingRight
-    case captureRefused
+    /// `detail` is the box's own answer (status or the start of its text), shown for diagnosis.
+    case captureRefused(detail: String?)
     case unsupportedFormat
     case notSupported
 
@@ -22,8 +23,10 @@ public enum ListenError: Error, Equatable, LocalizedError {
             return "Die Box hat die Anmeldung abgelehnt. Stimmt das Kennwort noch?"
         case .missingRight:
             return "Deinem FRITZ!Box-Benutzer fehlt das Recht „FRITZ!Box Einstellungen“. Du findest es unter System → FRITZ!Box-Benutzer."
-        case .captureRefused:
-            return "Die Box hat den Mitschnitt verweigert. Läuft gerade schon ein anderer Mitschnitt?"
+        case .captureRefused(let detail):
+            let base = "Die Box hat den Mitschnitt verweigert."
+            guard let detail, !detail.isEmpty else { return base }
+            return base + " Antwort der Box: „\(detail)“"
         case .unsupportedFormat:
             return "Die Box liefert den Mitschnitt in einem Format, das Netzblick noch nicht lesen kann."
         case .notSupported:

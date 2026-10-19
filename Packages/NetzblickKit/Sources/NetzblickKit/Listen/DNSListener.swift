@@ -94,7 +94,8 @@ public final class FritzDNSListener: NSObject, DNSListener, URLSessionDataDelega
         if (response as? HTTPURLResponse)?.statusCode == 200 {
             completionHandler(.allow)
         } else {
-            lock.withLock { continuation }?.finish(throwing: ListenError.captureRefused)
+            let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+            lock.withLock { continuation }?.finish(throwing: ListenError.captureRefused(detail: "HTTP \(status)"))
             completionHandler(.cancel)
         }
     }
@@ -109,7 +110,7 @@ public final class FritzDNSListener: NSObject, DNSListener, URLSessionDataDelega
             lock.unlock()
             // An HTML page instead of pcap means the box refused (e.g. the session expired).
             continuation?.finish(throwing: error as? PcapReader.ReadError == .pcapNGUnsupported
-                                 ? ListenError.unsupportedFormat : ListenError.captureRefused)
+                                 ? ListenError.unsupportedFormat : ListenError.captureRefused(detail: Self.excerpt(data)))
             dataTask.cancel()
             return
         }
@@ -118,6 +119,16 @@ public final class FritzDNSListener: NSObject, DNSListener, URLSessionDataDelega
         for frame in frames {
             if let query = DNSQuery.parse(frame) { continuation?.yield(query) }
         }
+    }
+
+    /// First words of a text answer, without markup, for the error message.
+    static func excerpt(_ data: Data) -> String {
+        let text = String(decoding: data.prefix(400), as: UTF8.self)
+            .replacingOccurrences(of: "<[^>]+>", with: " ", options: .regularExpression)
+            .components(separatedBy: .whitespacesAndNewlines)
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+        return String(text.prefix(140))
     }
 
     public func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
