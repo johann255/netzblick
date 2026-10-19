@@ -130,3 +130,24 @@ final class TR064Tests: XCTestCase {
         XCTAssertEqual(FritzBoxReader.band(instance: 2, channel: nil, frequencyField: nil), .ghz5)
     }
 }
+
+final class RouterAdapterTests: XCTestCase {
+    func testRoutersWorkThroughTheProtocol() async throws {
+        let routers: [any RouterAdapter] = [
+            FritzBoxReader(client: TR064Client(transport: MockTransport.fullBox())),
+            DemoRouter()
+        ]
+        XCTAssertEqual(routers.map(\.kind), [.fritzBox, .demo])
+        for router in routers {
+            let s = try await router.readSnapshot()
+            XCTAssertFalse(s.devices.isEmpty, "\(router.kind)")
+            XCTAssertTrue(router.capabilities.contains(.liveThroughput))
+        }
+    }
+
+    func testDemoRouterMatchesDemoHousehold() async throws {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let s = try await DemoRouter().readSnapshot(now: now)
+        XCTAssertEqual(s, DemoHousehold.snapshot(now: now))
+    }
+}

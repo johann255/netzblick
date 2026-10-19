@@ -1,21 +1,12 @@
 import Foundation
 
-/// Current traffic through the internet line, as reported by the box.
-public struct LiveThroughput: Hashable, Sendable {
-    public var downstreamMbps: Double
-    public var upstreamMbps: Double
-
-    public init(downstreamMbps: Double, upstreamMbps: Double) {
-        self.downstreamMbps = downstreamMbps
-        self.upstreamMbps = upstreamMbps
-    }
-}
-
 /// Reads a complete `HouseholdSnapshot` from a FRITZ!Box.
 ///
 /// Only the login check (DeviceInfo) is fatal. Every other part is read on a best-effort basis:
 /// a failing part becomes a warning, so one missing service never blanks the whole app.
-public struct FritzBoxReader: Sendable {
+public struct FritzBoxReader: RouterAdapter {
+    public let kind = RouterKind.fritzBox
+    public let capabilities = RouterCapabilities.all
     public let client: TR064Client
     public let classifier: DeviceClassifier
 
@@ -24,7 +15,7 @@ public struct FritzBoxReader: Sendable {
         self.classifier = classifier
     }
 
-    public func readSnapshot(now: Date = Date()) async throws -> HouseholdSnapshot {
+    public func readSnapshot(now: Date) async throws -> HouseholdSnapshot {
         let catalog = try await client.loadCatalog()
         var warnings: [String] = []
 
