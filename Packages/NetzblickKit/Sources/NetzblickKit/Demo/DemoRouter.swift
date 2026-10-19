@@ -14,4 +14,8 @@ public struct DemoRouter: RouterAdapter {
     public func readLiveThroughput() async throws -> LiveThroughput {
         LiveThroughput(downstreamMbps: Double.random(in: 4...18), upstreamMbps: Double.random(in: 0.5...3))
     }
+
+    public func wakeUp(macAddress: String) async throws {
+        try await Task.sleep(for: .milliseconds(400))
+    }
 }

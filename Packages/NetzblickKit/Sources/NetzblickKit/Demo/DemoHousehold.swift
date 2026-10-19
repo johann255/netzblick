@@ -132,9 +132,9 @@ public enum DemoHousehold {
             device(25, "Smarte Steckdose 2", vendor: "Tuya", category: .smartHome, connection: wlan(.ghz24, 52)),
             device(26, "Smarte Steckdose 3", vendor: "Tuya", category: .smartHome, connection: wlan(.ghz24, 35), active: false),
             device(27, "Türklingel", vendor: "Siedle", category: .smartHome, connection: wlan(.ghz24, 40)),
-            device(28, "Kamera Garten", vendor: "Reolink", category: .smartHome, connection: wlan(.ghz24, 47)),
+            device(28, "Kamera Garten", vendor: "Reolink", category: .camera, connection: wlan(.ghz24, 47)),
 
-            // Drucker
+            // Drucker (the camera above sits in its own group)
             device(29, "Drucker Arbeitszimmer", vendor: "HP", category: .printer, connection: wlan(.ghz24, 56), bonjour: ["_ipp._tcp"]),
 
             // Netzwerk

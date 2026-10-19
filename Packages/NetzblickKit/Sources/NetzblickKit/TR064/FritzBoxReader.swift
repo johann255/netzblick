@@ -77,6 +77,13 @@ public struct FritzBoxReader: RouterAdapter {
         return LiveThroughput(downstreamMbps: down * 8 / 1_000_000, upstreamMbps: up * 8 / 1_000_000)
     }
 
+    /// The box sends the magic packet itself, so the iPhone needs no broadcast rights.
+    public func wakeUp(macAddress: String) async throws {
+        let catalog = try await client.loadCatalog()
+        _ = try await client.call(catalog, "Hosts", action: "X_AVM-DE_WakeOnLANByMACAddress",
+                                  arguments: [("NewMACAddress", macAddress)])
+    }
+
     // MARK: - Wi-Fi
 
     private func readWLAN(_ catalog: ServiceCatalog) async -> ([WLANRadio], [String: WiFiLink], [WLANSecurity], String?) {

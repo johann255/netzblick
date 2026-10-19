@@ -26,8 +26,10 @@ public struct RouterCapabilities: OptionSet, Hashable, Sendable {
     public static let dnsListening = RouterCapabilities(rawValue: 1 << 5)
     /// Wi-Fi encryption, port forwardings and remote access, for the security check.
     public static let securityCheck = RouterCapabilities(rawValue: 1 << 6)
+    /// Waking a sleeping device (Wake on LAN) through the router.
+    public static let wakeOnLAN = RouterCapabilities(rawValue: 1 << 7)
 
-    public static let all: RouterCapabilities = [.devices, .wifiDetails, .lineStatus, .liveThroughput, .firmwareStatus, .dnsListening, .securityCheck]
+    public static let all: RouterCapabilities = [.devices, .wifiDetails, .lineStatus, .liveThroughput, .firmwareStatus, .dnsListening, .securityCheck, .wakeOnLAN]
 }
 
 /// Current traffic through the internet line, as reported by the router.
@@ -55,6 +57,10 @@ public protocol RouterAdapter: Sendable {
 
     /// Current up/down traffic on the internet line. Only called if `capabilities` contains `.liveThroughput`.
     func readLiveThroughput() async throws -> LiveThroughput
+
+    /// Asks the router to send a Wake-on-LAN packet. Changes no setting.
+    /// Only called if `capabilities` contains `.wakeOnLAN`.
+    func wakeUp(macAddress: String) async throws
 }
 
 public extension RouterAdapter {

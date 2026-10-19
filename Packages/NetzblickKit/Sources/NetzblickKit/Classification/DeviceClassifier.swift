@@ -47,6 +47,10 @@ public struct DeviceClassifier: Sendable {
 
     /// Keyword in the device name → category. Checked in order; more specific words first.
     static let nameRules: [(String, DeviceCategory)] = [
+        // Cameras before smart home, so "ring-cam" or "tapo-c200" end up here (Fing's "find hidden cameras").
+        ("kamera", .camera), ("camera", .camera), ("-cam", .camera), ("cam-", .camera), ("ipcam", .camera),
+        ("webcam", .camera), ("reolink", .camera), ("hikvision", .camera), ("dahua", .camera), ("arlo", .camera),
+        ("wyze", .camera), ("eufycam", .camera), ("tapo-c", .camera), ("tapo_c", .camera), ("blink", .camera),
         ("repeater", .network), ("fritz", .network), ("powerline", .network), ("mesh", .network),
         ("iphone", .phoneTablet), ("ipad", .phoneTablet), ("android", .phoneTablet), ("galaxy", .phoneTablet),
         ("pixel", .phoneTablet), ("handy", .phoneTablet), ("tablet", .phoneTablet), ("redmi", .phoneTablet),
@@ -75,10 +79,13 @@ public struct DeviceClassifier: Sendable {
         "_printer._tcp": .printer,
         "_hap._tcp": .smartHome,
         "_matter._tcp": .smartHome,
-        "_companion-link._tcp": .phoneTablet
+        "_companion-link._tcp": .phoneTablet,
+        "_rtsp._tcp": .camera
     ]
 
     static let vendorRules: [(String, DeviceCategory)] = [
+        ("hikvision", .camera), ("dahua", .camera), ("reolink", .camera), ("axis", .camera),
+        ("arlo", .camera), ("wyze", .camera), ("foscam", .camera), ("amcrest", .camera), ("ezviz", .camera),
         ("sonos", .entertainment),
         ("avm", .network),
         ("espressif", .smartHome),
@@ -96,6 +103,11 @@ public struct DeviceClassifier: Sendable {
         // Espressif (chips in many smart-home devices)
         "240AC4": "Espressif", "30AEA4": "Espressif", "A4CF12": "Espressif", "84CCA8": "Espressif",
         "BCDDC2": "Espressif", "246F28": "Espressif", "ECFABC": "Espressif", "3C71BF": "Espressif",
+        // Cameras. VERIFY against the IEEE list when the full table replaces this seed.
+        "C056E3": "Hikvision", "4CBD8F": "Hikvision", "BCAD28": "Hikvision", "44197B": "Hikvision",
+        "3CEF8C": "Dahua", "E0508B": "Dahua", "9C1463": "Dahua",
+        "EC71DB": "Reolink", "00408C": "Axis", "ACCC8E": "Axis", "B8A44F": "Axis",
+        "2CAA8E": "Wyze", "D03F27": "Wyze",
         // Raspberry Pi
         "B827EB": "Raspberry Pi", "DCA632": "Raspberry Pi", "E45F01": "Raspberry Pi"
     ]

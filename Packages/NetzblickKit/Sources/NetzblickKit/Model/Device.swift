@@ -68,6 +68,7 @@ public enum DeviceCategory: String, Codable, Sendable, CaseIterable {
     case phoneTablet
     case computer
     case smartHome
+    case camera
     case printer
     case network
 
@@ -79,6 +80,7 @@ public enum DeviceCategory: String, Codable, Sendable, CaseIterable {
         case .phoneTablet: return "Handys & Tablets"
         case .computer: return "Computer"
         case .smartHome: return "Smart Home"
+        case .camera: return "Kameras"
         case .printer: return "Drucker"
         case .network: return "Netzwerk"
         }
@@ -92,6 +94,7 @@ public enum DeviceCategory: String, Codable, Sendable, CaseIterable {
         case .phoneTablet: return "iphone"
         case .computer: return "laptopcomputer"
         case .smartHome: return "house"
+        case .camera: return "video"
         case .printer: return "printer"
         case .network: return "wifi.router"
         }
@@ -105,8 +108,9 @@ public enum DeviceCategory: String, Codable, Sendable, CaseIterable {
         case .phoneTablet: return 2
         case .computer: return 3
         case .smartHome: return 4
-        case .printer: return 5
-        case .network: return 6
+        case .camera: return 5
+        case .printer: return 6
+        case .network: return 7
         }
     }
 }

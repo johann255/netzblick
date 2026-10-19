@@ -24,6 +24,7 @@ struct DeviceDetailView: View {
 
                 if !device.isGuest {
                     historySection(device)
+                    DeviceToolsSection(device: device)
                 }
 
                 let related = relatedFindings(for: device)

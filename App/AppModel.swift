@@ -239,6 +239,48 @@ final class AppModel {
         await NewDeviceAlerts.announce(fresh)
     }
 
+    // MARK: Tools
+
+    var canWakeDevices: Bool {
+        currentRouter()?.capabilities.contains(.wakeOnLAN) ?? false
+    }
+
+    /// Pings a device of the home network. Demo devices answer with made-up times.
+    func ping(_ device: Device) async -> PingResult? {
+        guard !device.isGuest else { return nil }
+        if isDemo {
+            try? await Task.sleep(for: .milliseconds(600))
+            return device.isActive ? PingResult(sent: 3, received: 3, averageMs: 6) : PingResult(sent: 3, received: 0, averageMs: nil)
+        }
+        guard let ip = device.ipAddress else { return nil }
+        return await Pinger().ping(ip)
+    }
+
+    /// Which well-known services a device of the home network offers.
+    func openServices(_ device: Device) async -> [KnownService]? {
+        guard !device.isGuest else { return nil }
+        if isDemo {
+            try? await Task.sleep(for: .seconds(1))
+            let ports: [UInt16] = device.category == .camera ? [80, 554, 8000] : (device.name.hasPrefix("NAS") ? [80, 443, 445, 5000, 5001] : [])
+            return KnownService.common.filter { ports.contains($0.port) }
+        }
+        guard let ip = device.ipAddress else { return nil }
+        return await ServiceProbe().openServices(host: ip)
+    }
+
+    /// Asks the router to wake the device. Returns a plain-German error, or nil on success.
+    func wakeUp(_ device: Device) async -> String? {
+        guard let mac = device.macAddress, let router = currentRouter(), router.capabilities.contains(.wakeOnLAN) else {
+            return "Dieses Gerät lässt sich nicht aufwecken."
+        }
+        do {
+            try await router.wakeUp(macAddress: mac)
+            return nil
+        } catch {
+            return (error as? LocalizedError)?.errorDescription ?? "Die FRITZ!Box hat das Aufwecken abgelehnt."
+        }
+    }
+
     func liveThroughput() async -> LiveThroughput? {
         guard let router = currentRouter(), router.capabilities.contains(.liveThroughput) else { return nil }
         return try? await router.readLiveThroughput()
