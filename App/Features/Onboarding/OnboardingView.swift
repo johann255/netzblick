@@ -157,8 +157,8 @@ struct OnboardingView: View {
                         .accessibilityLabel("Adresse der Box")
                 }
 
-                formField("Benutzername") {
-                    TextField("", text: $username)
+                formField("Benutzername (falls vergeben)") {
+                    TextField("leer lassen, wenn du keinen hast", text: $username)
                         .textContentType(.username)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
@@ -245,7 +245,6 @@ struct OnboardingView: View {
     private var canConnect: Bool {
         !connecting
             && !host.trimmingCharacters(in: .whitespaces).isEmpty
-            && !username.isEmpty
             && !password.isEmpty
     }
 

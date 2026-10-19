@@ -77,7 +77,12 @@ final class AppModel {
     }
 
     /// Checks the login against the box, saves it in the keychain and loads the first snapshot.
+    /// An empty `username` means the person never set one; the box's automatic name is looked up.
     func connect(host: String, username: String, password: String) async throws {
+        var username = username.trimmingCharacters(in: .whitespaces)
+        if username.isEmpty {
+            username = try await automaticUsername(host: host)
+        }
         let saved = KeychainStore.Saved(host: host, username: username, password: password)
         let snapshot = try await router(for: saved).readSnapshot()
         try keychain.save(saved)
@@ -182,8 +187,21 @@ final class AppModel {
         }
     }
 
+    /// The name FRITZ!OS created when nobody set one (e.g. "fritz2690"); readable without login.
+    private func automaticUsername(host: String) async throws -> String {
+        let client = TR064Client(baseURL: baseURL(host: host), transport: URLSessionTransport(credentials: nil))
+        guard let name = try await client.loadUsers(try await client.loadCatalog()).suggested else {
+            throw ConnectError.noUsername
+        }
+        return name
+    }
+
+    private func baseURL(host: String) -> URL {
+        URL(string: "http://\(host):49000") ?? TR064Client.defaultBaseURL
+    }
+
     private func router(for saved: KeychainStore.Saved) -> any RouterAdapter {
-        let base = URL(string: "http://\(saved.host):49000") ?? TR064Client.defaultBaseURL
+        let base = baseURL(host: saved.host)
         let transport = URLSessionTransport(credentials: saved.credentials)
         return FritzBoxReader(client: TR064Client(baseURL: base, transport: transport))
     }
@@ -217,5 +235,13 @@ final class AppModel {
         )
         try? store.save(summary)
         WidgetCenter.shared.reloadAllTimelines()
+    }
+}
+
+private enum ConnectError: LocalizedError {
+    case noUsername
+
+    var errorDescription: String? {
+        "Die Box hat keinen Benutzernamen genannt. Trag ihn bitte von Hand ein (FRITZ!Box → System → FRITZ!Box-Benutzer)."
     }
 }

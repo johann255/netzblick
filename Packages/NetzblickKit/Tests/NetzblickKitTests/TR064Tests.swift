@@ -151,3 +151,33 @@ final class RouterAdapterTests: XCTestCase {
         XCTAssertEqual(s, DemoHousehold.snapshot(now: now))
     }
 }
+
+final class BoxUsersTests: XCTestCase {
+    func testAutomaticUserFromRealBox() {
+        // Answer of a FRITZ!Box 7590 AX (FRITZ!OS 8.25) where no user name was set.
+        let users = BoxUsers.parse(#"<List><Username last_user="1">fritz2690</Username></List>"#)
+        XCTAssertEqual(users.names, ["fritz2690"])
+        XCTAssertEqual(users.suggested, "fritz2690")
+    }
+
+    func testPrefersLastUsedOverFirst() {
+        let users = BoxUsers.parse(#"<List><Username>anna</Username><Username last_user="1">netzblick</Username></List>"#)
+        XCTAssertEqual(users.names, ["anna", "netzblick"])
+        XCTAssertEqual(users.suggested, "netzblick")
+    }
+
+    func testEmptyListSuggestsNothing() {
+        XCTAssertNil(BoxUsers.parse("<List></List>").suggested)
+    }
+
+    func testLoadsUsersWithoutLogin() async throws {
+        let transport = MockTransport.fullBox()
+        // The SOAP value arrives XML-escaped, as the box sends it.
+        transport.soap("/upnp/control/lanconfigsecurity", "X_AVM-DE_GetUserList", [
+            "NewX_AVM-DE_UserList": "&lt;List&gt;&lt;Username last_user=&quot;1&quot;&gt;fritz2690&lt;/Username&gt;&lt;/List&gt;"
+        ])
+        let client = TR064Client(transport: transport)
+        let users = try await client.loadUsers(try await client.loadCatalog())
+        XCTAssertEqual(users.suggested, "fritz2690")
+    }
+}

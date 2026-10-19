@@ -9,6 +9,7 @@
 <serviceList>
 <service><serviceType>urn:dslforum-org:service:DeviceInfo:1</serviceType><serviceId>urn:DeviceInfo-com:serviceId:DeviceInfo1</serviceId><controlURL>/upnp/control/deviceinfo</controlURL><eventSubURL>/upnp/control/deviceinfo</eventSubURL><SCPDURL>/deviceinfoSCPD.xml</SCPDURL></service>
 <service><serviceType>urn:dslforum-org:service:UserInterface:1</serviceType><serviceId>urn:UserInterface-com:serviceId:UserInterface1</serviceId><controlURL>/upnp/control/userif</controlURL><eventSubURL>/upnp/control/userif</eventSubURL><SCPDURL>/userifSCPD.xml</SCPDURL></service>
+<service><serviceType>urn:dslforum-org:service:LANConfigSecurity:1</serviceType><serviceId>urn:LANConfigSecurity-com:serviceId:LANConfigSecurity1</serviceId><controlURL>/upnp/control/lanconfigsecurity</controlURL><eventSubURL>/upnp/control/lanconfigsecurity</eventSubURL><SCPDURL>/lanconfigsecuritySCPD.xml</SCPDURL></service>
 <service><serviceType>urn:dslforum-org:service:Hosts:1</serviceType><serviceId>urn:LanDeviceHosts-com:serviceId:Hosts1</serviceId><controlURL>/upnp/control/hosts</controlURL><eventSubURL>/upnp/control/hosts</eventSubURL><SCPDURL>/hostsSCPD.xml</SCPDURL></service>
 </serviceList>
 <deviceList>
