@@ -20,7 +20,7 @@ struct LimitsView: View {
                 "was Geräte senden oder empfangen: keine Inhalte, Nachrichten, Passwörter",
                 "verschlüsselte Adress-Anfragen; die Auswertung ist darum eine Untergrenze",
                 "Geräte hinter einem zweiten Router und Netze ohne FRITZ!Box",
-                "was passiert, während die App geschlossen ist"
+                "was passiert, während die App geschlossen ist; mit dem Wachhund schaut sie ab und zu nach neuen Geräten, wann genau, entscheidet iOS"
             ]
         ),
         (
@@ -36,6 +36,7 @@ struct LimitsView: View {
                 "bleiben auf diesem iPhone; es gibt keinen Netzblick-Server",
                 "Ausnahme Tempo-Test: M-Lab veröffentlicht jede Messung mit deiner IP-Adresse als offene Forschungsdaten; sonst schickt Netzblick nichts mit",
                 "Zugangsdaten liegen im Schlüsselbund und gehen nur an deine Box",
+                "der Verlauf, wann welches Gerät online war, bleibt 30 Tage auf diesem iPhone; Gastnetz-Geräte werden nicht erfasst",
                 "Änderungen an der FRITZ!Box nur nach deiner Bestätigung"
             ]
         )

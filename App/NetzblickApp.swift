@@ -15,6 +15,9 @@ struct NetzblickApp: App {
                 .preferredColorScheme(colorScheme)
                 .onChange(of: accentRaw, initial: true) { _, raw in model.mirrorAccent(raw) }
         }
+        .backgroundTask(.appRefresh(NewDeviceAlerts.taskIdentifier)) {
+            await model.backgroundRefresh()
+        }
     }
 
     private var colorScheme: ColorScheme? {
@@ -46,6 +49,7 @@ struct RootView: View {
         .task { await model.refresh() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { Task { await model.refresh() } }
+            if phase == .background { NewDeviceAlerts.schedule() }
         }
         .onOpenURL { url in
             guard url.scheme == "netzblick" else { return }

@@ -21,6 +21,8 @@ final class AppModel {
     /// Plain-German error for the last failed reading, shown as a banner.
     var errorMessage: String?
     private(set) var lastSpeed: SpeedResult?
+    /// Who was online when; only devices of the home network, kept 30 days on this iPhone.
+    private(set) var presenceLog = PresenceLog()
 
     /// Last finished listening session; only counts, never packets.
     private(set) var listenReport: ListenReport?
@@ -37,6 +39,7 @@ final class AppModel {
     private let defaults = UserDefaults.standard
     private let engine = DiagnosisEngine()
     private let detector = NewDeviceDetector()
+    private let presenceStore = PresenceStore()
 
     private enum Key {
         static let demoMode = "demoMode"
@@ -56,6 +59,7 @@ final class AppModel {
         }
         if let saved = keychain.load() {
             mode = .live(host: saved.host)
+            presenceLog = presenceStore.load()
         } else if defaults.bool(forKey: Key.demoMode) {
             mode = .demo
         }
@@ -226,6 +230,15 @@ final class AppModel {
         writeWidgetSummary()
     }
 
+    /// Runs when iOS wakes the app in the background: read the box, announce new devices, plan the next run.
+    func backgroundRefresh() async {
+        defer { NewDeviceAlerts.schedule() }
+        guard case .live = mode else { return }
+        await refresh()
+        let fresh = newDeviceIDs.compactMap { device(id: $0) }
+        await NewDeviceAlerts.announce(fresh)
+    }
+
     func liveThroughput() async -> LiveThroughput? {
         guard let router = currentRouter(), router.capabilities.contains(.liveThroughput) else { return nil }
         return try? await router.readLiveThroughput()
@@ -249,7 +262,9 @@ final class AppModel {
         snapshot = nil
         findings = []
         newDeviceIDs = []
-        // A report belongs to the network it was heard in.
+        // A report and a history belong to the network they were taken in.
+        presenceLog = PresenceLog()
+        presenceStore.delete()
         listenReport = nil
         defaults.removeObject(forKey: Key.listenReport)
         mode = .onboarding
@@ -264,6 +279,7 @@ final class AppModel {
         }
         lastSpeed = nil
         listenReport = nil
+        NewDeviceAlerts.reset()
         if let url = SharedContainer.summaryURL() {
             try? FileManager.default.removeItem(at: url)
         }
@@ -326,6 +342,12 @@ final class AppModel {
         self.snapshot = snapshot
         newDeviceIDs = newIDs
         findings = engine.findings(for: snapshot, phoneSpeedMbps: lastSpeed?.downloadMbps)
+        if isDemo {
+            presenceLog = DemoHousehold.presenceLog(now: snapshot.takenAt)
+        } else {
+            presenceLog.record(snapshot)
+            presenceStore.save(presenceLog)
+        }
         writeWidgetSummary()
     }
 

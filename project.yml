@@ -41,6 +41,9 @@ targets:
         UILaunchScreen: {}
         UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
         ITSAppUsesNonExemptEncryption: false
+        # Background refresh only reads the FRITZ!Box to spot new devices (opt-in in the settings).
+        UIBackgroundModes: [fetch]
+        BGTaskSchedulerPermittedIdentifiers: [com.johann255.netzblick.refresh]
         CFBundleURLTypes:
           - CFBundleURLName: com.johann255.netzblick
             CFBundleURLSchemes: [netzblick]

@@ -63,6 +63,35 @@ public enum DemoHousehold {
         )
     }
 
+    /// A presence history for the demo: a few days of phones coming and going, and the new device arriving.
+    public static func presenceLog(now: Date = Date()) -> PresenceLog {
+        let all = devices
+        let newID = newDeviceIDs.first
+        let phones: Set<String> = ["Mein iPhone", "Annas iPhone", "Galaxy S24", "MacBook", "Laptop Arbeit"]
+        var log = PresenceLog()
+
+        func reading(hoursAgo: Double, away: Set<String>, withNew: Bool) -> HouseholdSnapshot {
+            let list = all.compactMap { device -> Device? in
+                if device.id == newID && !withNew { return nil }
+                var copy = device
+                if phones.contains(device.name) { copy.isActive = !away.contains(device.name) }
+                return copy
+            }
+            return HouseholdSnapshot(takenAt: now.addingTimeInterval(-hoursAgo * 3600), box: snapshot(now: now).box, devices: list)
+        }
+
+        // Weekday rhythm: work devices leave in the morning and come back in the evening.
+        let schedule: [(Double, Set<String>, Bool)] = [
+            (72, [], false), (62, ["Annas iPhone", "Laptop Arbeit"], false), (52, [], false),
+            (38, ["Annas iPhone", "Laptop Arbeit", "Mein iPhone"], false), (28, [], false),
+            (14, ["Annas iPhone", "Laptop Arbeit"], false), (5, ["Annas iPhone"], true), (0, [], true)
+        ]
+        for (hoursAgo, away, withNew) in schedule {
+            log.record(reading(hoursAgo: hoursAgo, away: away, withNew: withNew))
+        }
+        return log
+    }
+
     // MARK: - Devices (31 in total, 23 active)
 
     private static var devices: [Device] {
