@@ -20,6 +20,7 @@ struct SpeedTestView: View {
     @State private var result: SpeedResult?
     @State private var task: Task<Void, Never>?
     @State private var live: LiveThroughput?
+    @State private var server: SpeedServer?
 
     var body: some View {
         ScrollView {
@@ -50,7 +51,9 @@ struct SpeedTestView: View {
 
                 liveCard
 
-                Text("Gemessen wird über einen externen Testserver. Er sieht nur deine IP-Adresse, wie jede Webseite. Referenz: grün ab 90 % deines Tarifs (ohne Tarif ab 50 Mbit/s), rot unter 50 % (ohne Tarif unter 15 Mbit/s).")
+                sourceNote
+
+                Text("Referenz: grün ab 90 % deines Tarifs (ohne Tarif ab 50 Mbit/s), rot unter 50 % (ohne Tarif unter 15 Mbit/s).")
                     .font(.nbSans(13))
                     .foregroundStyle(Color.nbMuted)
                     .fixedSize(horizontal: false, vertical: true)
@@ -216,6 +219,7 @@ struct SpeedTestView: View {
         current = 0
         progress = 0
         result = nil
+        server = nil
         phase = .running
 
         task = Task { @MainActor in
@@ -224,15 +228,44 @@ struct SpeedTestView: View {
                     Task { @MainActor in
                         current = sample.currentMbps
                         progress = sample.progress
+                        server = sample.server
                     }
                 }
                 result = measured
+                server = measured.server
                 phase = .finished
             } catch is CancellationError {
                 phase = .idle
             } catch {
                 phase = .failed
             }
+        }
+    }
+
+    // MARK: - Herkunft der Messung
+
+    /// Says before the first tap where the data comes from and what M-Lab keeps.
+    private var sourceNote: some View {
+        NBCard {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Woher die Messdaten kommen")
+                    .font(.nbSans(15, weight: .semibold))
+                    .foregroundStyle(Color.nbInk)
+
+                Text(server.map { "Server: M-Lab in \($0.label)" } ?? "Server: M-Lab, der nächstgelegene")
+                    .font(.nbSans(15))
+                    .foregroundStyle(Color.nbInkSoft)
+
+                Text("Der Test lädt etwa 10 Sekunden lang Daten von Measurement Lab (M-Lab), einem offenen Messdienst für die Forschung. M-Lab veröffentlicht jede Messung zusammen mit deiner IP-Adresse als offene Daten. Netzblick schickt sonst nichts mit, auch keinen App-Namen und keine Gerätekennung.")
+                    .font(.nbSans(13))
+                    .foregroundStyle(Color.nbMuted)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                Link("Datenschutz bei M-Lab", destination: URL(string: "https://www.measurementlab.net/privacy/")!)
+                    .font(.nbSans(13, weight: .semibold))
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 

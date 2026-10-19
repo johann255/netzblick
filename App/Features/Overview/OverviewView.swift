@@ -237,11 +237,11 @@ struct OverviewView: View {
                             .foregroundStyle(Color.nbInkSoft)
                     }
 
-                    Text("Gemessen \(Self.relativeFormatter.localizedString(for: speed.measuredAt, relativeTo: Date()))")
+                    Text("Gemessen \(Self.relativeFormatter.localizedString(for: speed.measuredAt, relativeTo: Date()))" + (speed.server.map { " · M-Lab \($0.city)" } ?? ""))
                         .font(.nbSans(13))
                         .foregroundStyle(Color.nbMuted)
                 } else {
-                    Text("Noch nicht gemessen. Der Test dauert etwa 8 Sekunden.")
+                    Text("Noch nicht gemessen. Der Test dauert etwa 10 Sekunden und läuft über M-Lab.")
                         .font(.nbSans(15))
                         .foregroundStyle(Color.nbInkSoft)
                 }

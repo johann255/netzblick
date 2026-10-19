@@ -9,7 +9,7 @@ struct LimitsView: View {
             items: [
                 "alle Geräte, die deine FRITZ!Box kennt, mit Name, Hersteller und Verbindungsart",
                 "wie gut dein WLAN funkt und wie schnell deine Leitung ist",
-                "beim Tempo-Test: wie viel am iPhone ankommt, gemessen über einen externen Testserver",
+                "beim Tempo-Test: wie viel am iPhone ankommt, gemessen über Measurement Lab (M-Lab)",
                 "im Lauschmodus (ab v1.1): wohin deine Geräte Anfragen schicken, nach Kategorien"
             ]
         ),
@@ -33,7 +33,7 @@ struct LimitsView: View {
             title: "Deine Daten:",
             items: [
                 "bleiben auf diesem iPhone; es gibt keinen Netzblick-Server",
-                "der Testserver beim Tempo-Test sieht nur deine IP-Adresse, wie jede Webseite",
+                "Ausnahme Tempo-Test: M-Lab veröffentlicht jede Messung mit deiner IP-Adresse als offene Forschungsdaten; sonst schickt Netzblick nichts mit",
                 "Zugangsdaten liegen im Schlüsselbund und gehen nur an deine Box",
                 "Änderungen an der FRITZ!Box nur nach deiner Bestätigung"
             ]

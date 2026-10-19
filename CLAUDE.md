@@ -26,6 +26,10 @@ Technischer Aufbau und Regeln: siehe `ARCHITECTURE.md` (verbindlich).
   für Überschriften und große Zahlen, Geist für Text.
 - Tempo-Test in v1.0 mit Ampel: mit Tarif grün ab 90 %, gelb 50–90 %, rot darunter;
   ohne Tarif rot unter 15 Mbit/s, grün ab 50. Einziger Kontakt zu einem externen Server.
+- Testserver (19.10.2026): M-Lab ndt7 (Locate v2 + WebSocket-Download, ~10 s, eine Verbindung). M-Lab veröffentlicht
+  jede Messung mit IP-Adresse; das steht vor dem Start im Tempo-Test-Sheet und im Grenzen-Text. Datensparsam:
+  kein client_name, keine Version, User-Agent „ndt7“. Server (Stadt) wird angezeigt und mit dem Ergebnis gespeichert.
+  Noch prüfen: App-Store-Datenschutzangaben (Datenweitergabe an M-Lab).
 - Widgets in v1.0: Status, Übersicht, Tempo, Sperrbildschirm. Lesen nur aus der App Group.
 - Grenzen-Text in den Einstellungen ist Pflicht und muss zum Verhalten passen.
 - v1.1: DNS-Lauschmodus (Paketmitschnitt der Box) und Geräteprofile mit Sperr-Empfehlungen
@@ -35,7 +39,7 @@ Technischer Aufbau und Regeln: siehe `ARCHITECTURE.md` (verbindlich).
 
 ## Offene Fragen und Vorschläge (nicht entschieden)
 
-1. **Testserver** für den Tempo-Test festlegen (eigener Endpunkt oder öffentlicher mit passenden Nutzungsbedingungen).
+1. ~~Testserver~~ – entschieden: M-Lab (siehe oben).
 2. **FRITZ!-DNS-Filter** (FRITZ!OS 8.50 Labor): keine bekannte App-Schnittstelle. Vorschlag: Netzblick-Sperrliste
    und Ausnahmeliste als statische Dateien zum Abonnieren; prüfen, ob die Labor-Firmware einen neuen TR-064-Dienst zeigt.
    Später gemeinsame Schicht „Sperrziel“ (FRITZ!-Zugangsprofil, FRITZ!-DNS-Filter, Pi-hole).

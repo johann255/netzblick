@@ -151,3 +151,32 @@ final class WidgetSummaryTests: XCTestCase {
         XCTAssertEqual(store.load()?.lastSpeedLevel, .fast)
     }
 }
+
+final class MLabLocateTests: XCTestCase {
+    func testParsesNearestServerFirstAndSkipsEntriesWithoutSecureDownload() throws {
+        let json = """
+        {"results":[
+          {"machine":"mlab1-ber03.mlab-oti.measurement-lab.org","location":{"city":"Berlin","country":"DE"},
+           "urls":{"ws:///ndt/v7/download":"ws://a/ndt/v7/download?access_token=x",
+                   "wss:///ndt/v7/download":"wss://a/ndt/v7/download?access_token=x"}},
+          {"machine":"mlab1-ham02.mlab-oti.measurement-lab.org","location":{"city":"Hamburg","country":"DE"},
+           "urls":{"ws:///ndt/v7/download":"ws://b/ndt/v7/download?access_token=y"}},
+          {"machine":"mlab1-prg04.mlab-oti.measurement-lab.org",
+           "urls":{"wss:///ndt/v7/download":"wss://c/ndt/v7/download?access_token=z"}}
+        ]}
+        """
+        let targets = try MLabLocate.targets(from: Data(json.utf8))
+        XCTAssertEqual(targets.map(\.server.label), ["Berlin, DE", "unbekannt, –"])
+        XCTAssertEqual(targets.first?.downloadURL.scheme, "wss")
+    }
+
+    func testEmptyResponseGivesNoTargets() throws {
+        XCTAssertTrue(try MLabLocate.targets(from: Data("{}".utf8)).isEmpty)
+    }
+
+    func testOldStoredResultWithoutServerStillDecodes() throws {
+        let json = #"{"downloadMbps":104,"measuredAt":0,"bytes":1,"duration":8}"#
+        let result = try JSONDecoder().decode(SpeedResult.self, from: Data(json.utf8))
+        XCTAssertNil(result.server)
+    }
+}

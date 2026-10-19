@@ -3,6 +3,23 @@ import Foundation
 import FoundationNetworking
 #endif
 
+/// The M-Lab server a speed test ran against, shown to the user.
+public struct SpeedServer: Hashable, Codable, Sendable {
+    public var city: String
+    /// ISO country code, e.g. "DE".
+    public var country: String
+    public var machine: String
+
+    public init(city: String, country: String, machine: String) {
+        self.city = city
+        self.country = country
+        self.machine = machine
+    }
+
+    /// "Berlin, DE"
+    public var label: String { "\(city), \(country)" }
+}
+
 /// One live reading during a speed test.
 public struct SpeedSample: Hashable, Sendable {
     /// Seconds since the test started.
@@ -11,6 +28,8 @@ public struct SpeedSample: Hashable, Sendable {
     public var currentMbps: Double
     /// Share of the planned test duration that has passed (0–1).
     public var progress: Double
+    /// The server being measured against.
+    public var server: SpeedServer?
 }
 
 /// Final result of a speed test.
@@ -19,12 +38,54 @@ public struct SpeedResult: Hashable, Codable, Sendable {
     public var measuredAt: Date
     public var bytes: Int64
     public var duration: TimeInterval
+    /// Nil for results stored before the switch to M-Lab.
+    public var server: SpeedServer?
 
-    public init(downloadMbps: Double, measuredAt: Date, bytes: Int64, duration: TimeInterval) {
+    public init(downloadMbps: Double, measuredAt: Date, bytes: Int64, duration: TimeInterval, server: SpeedServer? = nil) {
         self.downloadMbps = downloadMbps
         self.measuredAt = measuredAt
         self.bytes = bytes
         self.duration = duration
+        self.server = server
+    }
+}
+
+/// M-Lab's Locate API: which nearby ndt7 servers to measure against.
+///
+/// The request carries no client name, version or device data; M-Lab sees only the IP address.
+public enum MLabLocate {
+    public static let url = URL(string: "https://locate.measurementlab.net/v2/nearest/ndt/ndt7")!
+
+    public struct Target: Hashable, Sendable {
+        public var server: SpeedServer
+        /// Signed `wss://` URL for the download test; valid for a short time only.
+        public var downloadURL: URL
+    }
+
+    /// Parses the Locate response, nearest server first. Entries without a secure download URL are skipped.
+    public static func targets(from data: Data) throws -> [Target] {
+        struct Response: Decodable {
+            struct Result: Decodable {
+                struct Location: Decodable {
+                    var city: String?
+                    var country: String?
+                }
+                var machine: String
+                var location: Location?
+                var urls: [String: String]
+            }
+            var results: [Result]?
+        }
+        let response = try JSONDecoder().decode(Response.self, from: data)
+        return (response.results ?? []).compactMap { result in
+            guard let raw = result.urls["wss:///ndt/v7/download"], let url = URL(string: raw) else { return nil }
+            let server = SpeedServer(
+                city: result.location?.city ?? "unbekannt",
+                country: result.location?.country ?? "–",
+                machine: result.machine
+            )
+            return Target(server: server, downloadURL: url)
+        }
     }
 }
 
@@ -64,108 +125,103 @@ public struct ThroughputMeter: Sendable {
 }
 
 #if canImport(Darwin)
-/// Downloads test data for a few seconds over several parallel connections and reports live throughput.
+/// ndt7 download test against M-Lab (https://www.measurementlab.net), reporting live throughput.
 ///
-/// Privacy: the test server sees this iPhone's public IP address, like any website.
-/// Netzblick sends nothing else and stores the result only on the device.
+/// Privacy: M-Lab publishes every measurement, including this iPhone's public IP address, as open data.
+/// Netzblick sends nothing else: no client name, no app version, a neutral User-Agent.
+/// The result is stored only on the device.
 public final class SpeedTester: @unchecked Sendable {
-    /// Endpoint that streams random data; one request per connection, restarted when it ends early.
-    /// Cloudflare answers 403 from 100 MB per request, so a single request caps the result near 100 Mbit/s.
-    /// DECIDE before release: run on an own endpoint or confirm terms of use of a public one.
-    public var endpoint: URL
+    /// ndt7 servers end the download after about 10 s; the client gives up at 15 s.
     public var duration: TimeInterval
-    public var maxBytes: Int64
-    /// Parallel connections; one TCP stream rarely fills a fast line.
-    public var connections: Int
+    public var timeout: TimeInterval
 
-    public init(
-        endpoint: URL = URL(string: "https://speed.cloudflare.com/__down?bytes=50000000")!,
-        duration: TimeInterval = 8,
-        maxBytes: Int64 = 1_000_000_000,
-        connections: Int = 4
-    ) {
-        self.endpoint = endpoint
+    static let subprotocol = "net.measurementlab.ndt.v7"
+    /// ndt7 messages can be up to 16 MiB; URLSession's default limit is 1 MiB.
+    static let maxMessageSize = 1 << 24
+
+    public init(duration: TimeInterval = 10, timeout: TimeInterval = 15) {
         self.duration = duration
-        self.maxBytes = maxBytes
-        self.connections = connections
+        self.timeout = timeout
     }
 
     /// Runs the test. Calls `onSample` about every 0.25 s on an arbitrary thread.
     public func run(onSample: @escaping @Sendable (SpeedSample) -> Void) async throws -> SpeedResult {
-        // Chunks arrive through a delegate: iterating AsyncBytes byte by byte is too slow above ~100 Mbit/s.
-        let (events, continuation) = AsyncThrowingStream<ChunkCounter.Event, Error>.makeStream()
-        let delegate = ChunkCounter(continuation: continuation)
         let config = URLSessionConfiguration.ephemeral
         config.requestCachePolicy = .reloadIgnoringLocalAndRemoteCacheData
         config.timeoutIntervalForRequest = 10
-        config.httpMaximumConnectionsPerHost = connections
-        let session = URLSession(configuration: config, delegate: delegate, delegateQueue: nil)
+        config.httpCookieAcceptPolicy = .never
+        config.httpAdditionalHeaders = ["User-Agent": "ndt7"]
+        let session = URLSession(configuration: config)
         defer { session.invalidateAndCancel() }
-        for _ in 0..<max(connections, 1) {
-            session.dataTask(with: endpoint).resume()
+
+        let (data, response) = try await session.data(from: MLabLocate.url)
+        guard (response as? HTTPURLResponse)?.statusCode == 200 else { throw URLError(.badServerResponse) }
+        let targets = try MLabLocate.targets(from: data)
+
+        // Try the nearest server first; fall back to the next one only if nothing arrived.
+        var lastError: Error = URLError(.cannotFindHost)
+        for target in targets.prefix(3) {
+            do {
+                return try await download(from: target, session: session, onSample: onSample)
+            } catch is CancellationError {
+                throw CancellationError()
+            } catch {
+                lastError = error
+            }
         }
+        throw lastError
+    }
+
+    private func download(
+        from target: MLabLocate.Target,
+        session: URLSession,
+        onSample: @escaping @Sendable (SpeedSample) -> Void
+    ) async throws -> SpeedResult {
+        var request = URLRequest(url: target.downloadURL)
+        request.setValue(Self.subprotocol, forHTTPHeaderField: "Sec-WebSocket-Protocol")
+        request.setValue("ndt7", forHTTPHeaderField: "User-Agent")
+        let socket = session.webSocketTask(with: request)
+        socket.maximumMessageSize = Self.maxMessageSize
+        socket.resume()
+        defer { socket.cancel(with: .normalClosure, reason: nil) }
 
         var meter = ThroughputMeter()
         let start = Date()
         var total: Int64 = 0
         var lastReport: TimeInterval = 0
 
-        for try await event in events {
-            let t = Date().timeIntervalSince(start)
-            switch event {
-            case .bytes(let count):
-                total += Int64(count)
-            case .requestFinished:
-                // A connection ran out of data before the time was up: start the next request.
-                if t < duration { session.dataTask(with: endpoint).resume() }
+        while true {
+            let message: URLSessionWebSocketTask.Message
+            do {
+                message = try await socket.receive()
+            } catch {
+                // The server closes the connection when its time is up; that is the normal end.
+                if total > 0 { break }
+                throw error
             }
+            switch message {
+            case .data(let data): total += Int64(data.count)
+            case .string(let text): total += Int64(text.utf8.count)
+            @unknown default: break
+            }
+            let t = Date().timeIntervalSince(start)
             if t - lastReport >= 0.25 {
                 let current = meter.record(t: t, totalBytes: total)
-                onSample(SpeedSample(elapsed: t, currentMbps: current, progress: min(t / duration, 1)))
+                onSample(SpeedSample(elapsed: t, currentMbps: current, progress: min(t / duration, 1), server: target.server))
                 lastReport = t
             }
-            if t >= duration || total >= maxBytes || Task.isCancelled { break }
+            if t >= timeout || Task.isCancelled { break }
         }
         try Task.checkCancellation()
         let elapsed = Date().timeIntervalSince(start)
         _ = meter.record(t: elapsed, totalBytes: total)
-        guard total > 0 else { throw URLError(.badServerResponse) }
-        return SpeedResult(downloadMbps: meter.resultMbps, measuredAt: Date(), bytes: total, duration: elapsed)
-    }
-}
-
-private final class ChunkCounter: NSObject, URLSessionDataDelegate, @unchecked Sendable {
-    enum Event: Sendable {
-        case bytes(Int)
-        case requestFinished
-    }
-
-    let continuation: AsyncThrowingStream<Event, Error>.Continuation
-
-    init(continuation: AsyncThrowingStream<Event, Error>.Continuation) {
-        self.continuation = continuation
-    }
-
-    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive response: URLResponse,
-                    completionHandler: @escaping (URLSession.ResponseDisposition) -> Void) {
-        if (response as? HTTPURLResponse)?.statusCode == 200 {
-            completionHandler(.allow)
-        } else {
-            continuation.finish(throwing: URLError(.badServerResponse))
-            completionHandler(.cancel)
-        }
-    }
-
-    func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
-        continuation.yield(.bytes(data.count))
-    }
-
-    func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
-        if let error {
-            if (error as? URLError)?.code != .cancelled { continuation.finish(throwing: error) }
-        } else {
-            continuation.yield(.requestFinished)
-        }
+        return SpeedResult(
+            downloadMbps: meter.resultMbps,
+            measuredAt: Date(),
+            bytes: total,
+            duration: elapsed,
+            server: target.server
+        )
     }
 }
 #endif
