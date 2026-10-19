@@ -79,7 +79,7 @@ final class AppModel {
     /// Checks the login against the box, saves it in the keychain and loads the first snapshot.
     func connect(host: String, username: String, password: String) async throws {
         let saved = KeychainStore.Saved(host: host, username: username, password: password)
-        let snapshot = try await reader(for: saved).readSnapshot()
+        let snapshot = try await router(for: saved).readSnapshot()
         try keychain.save(saved)
         defaults.set(false, forKey: Key.demoMode)
         // Everything on the first reading counts as known, so nothing is flagged as new.
@@ -96,14 +96,15 @@ final class AppModel {
         case .onboarding:
             return
         case .demo:
-            apply(DemoHousehold.snapshot(), newIDs: DemoHousehold.newDeviceIDs)
+            guard let snapshot = try? await DemoRouter().readSnapshot() else { return }
+            apply(snapshot, newIDs: DemoHousehold.newDeviceIDs)
         case .live:
             guard let saved = keychain.load() else {
                 mode = .onboarding
                 return
             }
             do {
-                let snapshot = try await reader(for: saved).readSnapshot()
+                let snapshot = try await router(for: saved).readSnapshot()
                 let known = Set(defaults.stringArray(forKey: Key.knownDeviceIDs) ?? [])
                 apply(snapshot, newIDs: detector.newDeviceIDs(in: snapshot, known: known))
                 errorMessage = nil
@@ -123,15 +124,8 @@ final class AppModel {
     }
 
     func liveThroughput() async -> LiveThroughput? {
-        switch mode {
-        case .demo:
-            return LiveThroughput(downstreamMbps: Double.random(in: 4...18), upstreamMbps: Double.random(in: 0.5...3))
-        case .live:
-            guard let saved = keychain.load() else { return nil }
-            return try? await reader(for: saved).readLiveThroughput()
-        case .onboarding:
-            return nil
-        }
+        guard let router = currentRouter(), router.capabilities.contains(.liveThroughput) else { return nil }
+        return try? await router.readLiveThroughput()
     }
 
     func runSpeedTest(onSample: @escaping @Sendable (SpeedSample) -> Void) async throws -> SpeedResult {
@@ -176,7 +170,19 @@ final class AppModel {
 
     // MARK: Private
 
-    private func reader(for saved: KeychainStore.Saved) -> FritzBoxReader {
+    /// The router behind the current mode, nil during onboarding.
+    private func currentRouter() -> (any RouterAdapter)? {
+        switch mode {
+        case .onboarding:
+            return nil
+        case .demo:
+            return DemoRouter()
+        case .live:
+            return keychain.load().map(router(for:))
+        }
+    }
+
+    private func router(for saved: KeychainStore.Saved) -> any RouterAdapter {
         let base = URL(string: "http://\(saved.host):49000") ?? TR064Client.defaultBaseURL
         let transport = URLSessionTransport(credentials: saved.credentials)
         return FritzBoxReader(client: TR064Client(baseURL: base, transport: transport))
