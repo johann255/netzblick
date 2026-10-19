@@ -12,7 +12,7 @@ public enum ListenError: Error, Equatable, LocalizedError {
     case missingRight
     /// `detail` is the box's own answer (status or the start of its text), shown for diagnosis.
     case captureRefused(detail: String?)
-    case unsupportedFormat
+    case unsupportedFormat(head: String)
     case notSupported
 
     public var errorDescription: String? {
@@ -27,8 +27,8 @@ public enum ListenError: Error, Equatable, LocalizedError {
             let base = "Die Box hat den Mitschnitt verweigert."
             guard let detail, !detail.isEmpty else { return base }
             return base + " Antwort der Box: „\(detail)“"
-        case .unsupportedFormat:
-            return "Die Box liefert den Mitschnitt in einem Format, das Netzblick noch nicht lesen kann."
+        case .unsupportedFormat(let head):
+            return "Die Box liefert den Mitschnitt in einem Format, das Netzblick noch nicht lesen kann. Anfang: \(head)"
         case .notSupported:
             return "Dieser Router kann nicht mitlauschen."
         }

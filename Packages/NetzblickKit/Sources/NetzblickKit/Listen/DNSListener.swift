@@ -109,8 +109,11 @@ public final class FritzDNSListener: NSObject, DNSListener, URLSessionDataDelega
             let continuation = self.continuation
             lock.unlock()
             // An HTML page instead of pcap means the box refused (e.g. the session expired).
-            continuation?.finish(throwing: error as? PcapReader.ReadError == .pcapNGUnsupported
-                                 ? ListenError.unsupportedFormat : ListenError.captureRefused(detail: Self.excerpt(data)))
+            if case let PcapReader.ReadError.unknownFormat(head) = error, Self.looksBinary(data) {
+                continuation?.finish(throwing: ListenError.unsupportedFormat(head: head))
+            } else {
+                continuation?.finish(throwing: ListenError.captureRefused(detail: Self.excerpt(data)))
+            }
             dataTask.cancel()
             return
         }
@@ -119,6 +122,10 @@ public final class FritzDNSListener: NSObject, DNSListener, URLSessionDataDelega
         for frame in frames {
             if let query = DNSQuery.parse(frame) { continuation?.yield(query) }
         }
+    }
+
+    static func looksBinary(_ data: Data) -> Bool {
+        data.prefix(64).contains { $0 < 0x09 || ($0 > 0x0D && $0 < 0x20) }
     }
 
     /// First words of a text answer, without markup, for the error message.

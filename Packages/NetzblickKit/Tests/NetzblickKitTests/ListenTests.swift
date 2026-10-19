@@ -67,13 +67,32 @@ final class ListenTests: XCTestCase {
         XCTAssertNil(DNSQuery.parse(https))
     }
 
-    func testRejectsHTMLAndPcapNG() {
+    func testRejectsHTMLWithHexHead() {
         var reader = PcapReader()
-        XCTAssertThrowsError(try reader.feed(Data("<!DOCTYPE html><html><body>Anmeldung</body></html>".utf8)))
-        var ng = PcapReader()
-        XCTAssertThrowsError(try ng.feed(Data([0x0A, 0x0D, 0x0D, 0x0A] + Array(repeating: 0, count: 24)))) {
-            XCTAssertEqual($0 as? PcapReader.ReadError, .pcapNGUnsupported)
+        XCTAssertThrowsError(try reader.feed(Data("<!DOCTYPE html><html><body>Anmeldung</body></html>".utf8))) {
+            guard case let PcapReader.ReadError.unknownFormat(head) = $0 else { return XCTFail() }
+            XCTAssertTrue(head.hasPrefix("3C 21 44 4F"))
         }
+    }
+
+    func testReadsPcapNG() throws {
+        func le32(_ v: UInt32) -> [UInt8] { [UInt8(v & 0xFF), UInt8(v >> 8 & 0xFF), UInt8(v >> 16 & 0xFF), UInt8(v >> 24)] }
+        func block(_ type: UInt32, _ body: [UInt8]) -> [UInt8] {
+            var body = body
+            while body.count % 4 != 0 { body.append(0) }
+            let length = UInt32(12 + body.count)
+            return le32(type) + le32(length) + body + le32(length)
+        }
+        let frame = [UInt8](Self.dnsFrame(mac: Self.phoneMAC, ip: [192, 168, 178, 28], name: "app-measurement.com"))
+        let shb = block(0x0A0D0D0A, [0x4D, 0x3C, 0x2B, 0x1A, 1, 0, 0, 0] + Array(repeating: 0xFF, count: 8))
+        let idb = block(1, [1, 0, 0, 0] + le32(65535))
+        let epb = block(6, le32(0) + le32(0) + le32(1_000_000) + le32(UInt32(frame.count)) + le32(UInt32(frame.count)) + frame)
+        let data = Data(shb + idb + epb)
+        var reader = PcapReader()
+        var frames: [CapturedFrame] = []
+        frames += try reader.feed(data.prefix(30))
+        frames += try reader.feed(data.dropFirst(30))
+        XCTAssertEqual(frames.compactMap(DNSQuery.parse).map(\.name), ["app-measurement.com"])
     }
 
     // MARK: Domain groups

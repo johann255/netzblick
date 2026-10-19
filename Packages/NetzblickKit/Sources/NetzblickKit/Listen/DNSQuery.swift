@@ -38,6 +38,11 @@ public struct DNSQuery: Hashable, Sendable {
             if addressLength == 6 { mac = formatMAC(bytes[6..<12]) }
             etherType = Int(bytes[14]) << 8 | Int(bytes[15])
             offset = 16
+        case 276: // Linux cooked capture v2 (SLL2)
+            guard bytes.count >= 20 else { return nil }
+            etherType = Int(bytes[0]) << 8 | Int(bytes[1])
+            if bytes[11] == 6 { mac = formatMAC(bytes[12..<18]) }
+            offset = 20
         default:
             return nil
         }
