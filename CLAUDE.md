@@ -53,6 +53,10 @@ Technischer Aufbau und Regeln: siehe `ARCHITECTURE.md` (verbindlich).
    Offen: Zeitpunkt der JSON-Auslagerung (Empfehlung: nach v1.0). Einzige FRITZ!-Bindung oberhalb des Adapters
    sind die Diagnose-Texte (`DiagnosisEngine`, „FRITZ!Box“/„fritz.box“) – die müssten pro Router austauschbar werden.
 
+5. **Fing/Fingbox-Funktionen** (19.10.2026): Plan in `docs/fing-plan.md`. Phase 1–3 (Sicherheits-Check,
+   Geräteverlauf + Wachhund, Werkzeuge: Ping, offene Dienste, Kameras, Aufwecken) in PR #2.
+   Offen: Aufwecken über die Box schon in v1.0? Wachhund standardmäßig aus?
+
 ## Nächster Schritt
 
 Johann startet die App im Simulator (Demo) und auf dem iPhone gegen seine Box, schickt Screenshots;
