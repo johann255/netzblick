@@ -263,6 +263,21 @@ struct OverviewView: View {
     private var tempoCard: some View {
         NBCard {
             VStack(alignment: .leading, spacing: 14) {
+                if let wan = model.snapshot?.wan, let down = wan.maxDownstreamMbps {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Leitung laut FRITZ!Box")
+                            .font(.nbSans(13))
+                            .foregroundStyle(Color.nbMuted)
+                        Text("↓ \(Int(down.rounded())) Mbit/s" + (wan.maxUpstreamMbps.map { "   ↑ \(Int($0.rounded())) Mbit/s" } ?? ""))
+                            .font(.nbSans(17, weight: .semibold))
+                            .monospacedDigit()
+                            .foregroundStyle(Color.nbInk)
+                    }
+                    Rectangle().fill(Color.nbLine).frame(height: 1)
+                    Text(model.lastSpeed == nil ? "Am iPhone gemessen" : "Am iPhone gemessen, über WLAN bis ins Internet")
+                        .font(.nbSans(13))
+                        .foregroundStyle(Color.nbMuted)
+                }
                 if let speed = model.lastSpeed {
                     HStack(alignment: .firstTextBaseline, spacing: 6) {
                         Text("\(Int(speed.downloadMbps))")
