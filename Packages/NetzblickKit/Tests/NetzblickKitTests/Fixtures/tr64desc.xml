@@ -11,6 +11,8 @@
 <service><serviceType>urn:dslforum-org:service:UserInterface:1</serviceType><serviceId>urn:UserInterface-com:serviceId:UserInterface1</serviceId><controlURL>/upnp/control/userif</controlURL><eventSubURL>/upnp/control/userif</eventSubURL><SCPDURL>/userifSCPD.xml</SCPDURL></service>
 <service><serviceType>urn:dslforum-org:service:LANConfigSecurity:1</serviceType><serviceId>urn:LANConfigSecurity-com:serviceId:LANConfigSecurity1</serviceId><controlURL>/upnp/control/lanconfigsecurity</controlURL><eventSubURL>/upnp/control/lanconfigsecurity</eventSubURL><SCPDURL>/lanconfigsecuritySCPD.xml</SCPDURL></service>
 <service><serviceType>urn:dslforum-org:service:Hosts:1</serviceType><serviceId>urn:LanDeviceHosts-com:serviceId:Hosts1</serviceId><controlURL>/upnp/control/hosts</controlURL><eventSubURL>/upnp/control/hosts</eventSubURL><SCPDURL>/hostsSCPD.xml</SCPDURL></service>
+<service><serviceType>urn:dslforum-org:service:X_AVM-DE_RemoteAccess:1</serviceType><serviceId>urn:X_AVM-DE_RemoteAccess-com:serviceId:X_AVM-DE_RemoteAccess1</serviceId><controlURL>/upnp/control/x_remote</controlURL><eventSubURL>/upnp/control/x_remote</eventSubURL><SCPDURL>/x.xml</SCPDURL></service>
+<service><serviceType>urn:dslforum-org:service:X_AVM-DE_MyFritz:1</serviceType><serviceId>urn:X_AVM-DE_MyFritz-com:serviceId:X_AVM-DE_MyFritz1</serviceId><controlURL>/upnp/control/x_myfritz</controlURL><eventSubURL>/upnp/control/x_myfritz</eventSubURL><SCPDURL>/x.xml</SCPDURL></service>
 </serviceList>
 <deviceList>
 <device>
@@ -26,6 +28,7 @@
 <modelName>WANDevice</modelName>
 <serviceList>
 <service><serviceType>urn:dslforum-org:service:WANCommonInterfaceConfig:1</serviceType><serviceId>urn:WANCIfConfig-com:serviceId:WANCommonInterfaceConfig1</serviceId><controlURL>/upnp/control/wancommonifconfig1</controlURL><eventSubURL>/upnp/control/wancommonifconfig1</eventSubURL><SCPDURL>/wancommonifconfigSCPD.xml</SCPDURL></service>
+<service><serviceType>urn:dslforum-org:service:WANPPPConnection:1</serviceType><serviceId>urn:WANPPPConnection-com:serviceId:WANPPPConnection1</serviceId><controlURL>/upnp/control/wanpppconn1</controlURL><eventSubURL>/upnp/control/wanpppconn1</eventSubURL><SCPDURL>/x.xml</SCPDURL></service>
 </serviceList>
 </device>
 </deviceList>

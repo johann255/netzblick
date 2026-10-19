@@ -24,8 +24,10 @@ public struct RouterCapabilities: OptionSet, Hashable, Sendable {
 
     /// Listening to which addresses devices ask for (DNS), via a packet capture.
     public static let dnsListening = RouterCapabilities(rawValue: 1 << 5)
+    /// Wi-Fi encryption, port forwardings and remote access, for the security check.
+    public static let securityCheck = RouterCapabilities(rawValue: 1 << 6)
 
-    public static let all: RouterCapabilities = [.devices, .wifiDetails, .lineStatus, .liveThroughput, .firmwareStatus, .dnsListening]
+    public static let all: RouterCapabilities = [.devices, .wifiDetails, .lineStatus, .liveThroughput, .firmwareStatus, .dnsListening, .securityCheck]
 }
 
 /// Current traffic through the internet line, as reported by the router.

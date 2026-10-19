@@ -44,6 +44,11 @@ struct OverviewView: View {
             NBSectionTitle("Hinweise")
             findingsCard
 
+            if model.canCheckSecurity && !model.securityChecks.isEmpty {
+                NBSectionTitle("Sicherheit")
+                securityCard
+            }
+
             if model.canListen {
                 NBSectionTitle("Wer funkt nach außen?")
                 listenCard
@@ -210,6 +215,40 @@ struct OverviewView: View {
             return "Hersteller: \(vendor)."
         }
         return "Hersteller unbekannt. Viele Handys nutzen private Adressen, das ist normal."
+    }
+
+    // MARK: - Sicherheit
+
+    private var securityCard: some View {
+        let warnings = model.securityChecks.filter { $0.state == .warn }
+        return NavigationLink {
+            SecurityView()
+        } label: {
+            NBCard {
+                HStack(spacing: 12) {
+                    Image(systemName: warnings.isEmpty ? "checkmark.shield.fill" : "exclamationmark.shield.fill")
+                        .font(.system(size: 26, weight: .medium))
+                        .foregroundStyle(warnings.isEmpty ? Color.nbSpeedFast : Color.nbOrange)
+                        .accessibilityHidden(true)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(warnings.isEmpty ? "Nichts Auffälliges" : (warnings.count == 1 ? "1 Punkt prüfen" : "\(warnings.count) Punkte prüfen"))
+                            .font(.nbSans(15, weight: .semibold))
+                            .foregroundStyle(Color.nbInk)
+                        Text(warnings.isEmpty
+                             ? "WLAN, Freigaben und Fernzugriff geprüft"
+                             : warnings.map(\.title).joined(separator: ", "))
+                            .font(.nbSans(13))
+                            .foregroundStyle(Color.nbMuted)
+                    }
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(Color.nbMuted)
+                }
+                .padding(16)
+            }
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Lauschmodus

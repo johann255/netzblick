@@ -46,7 +46,7 @@ public struct FritzBoxReader: RouterAdapter {
         }
 
         // 4. Wi-Fi radios and who is associated with them.
-        let (radios, wifiLinks, wifiWarning) = await readWLAN(catalog)
+        let (radios, wifiLinks, wlanSecurity, wifiWarning) = await readWLAN(catalog)
         if let wifiWarning { warnings.append(wifiWarning) }
 
         // 5. Host list.
@@ -60,7 +60,11 @@ public struct FritzBoxReader: RouterAdapter {
             warnings.append("Die Geräteliste konnte nicht gelesen werden.")
         }
 
-        return HouseholdSnapshot(takenAt: now, box: box, wan: wan, radios: radios, devices: devices, warnings: warnings)
+        // 6. Security settings. Read-only and silent: what fails shows up as "nicht lesbar".
+        let security = await readSecurity(catalog, wlans: wlanSecurity)
+
+        return HouseholdSnapshot(takenAt: now, box: box, wan: wan, radios: radios, devices: devices,
+                                 security: security, warnings: warnings)
     }
 
     /// Current up/down traffic on the internet line.
@@ -75,12 +79,13 @@ public struct FritzBoxReader: RouterAdapter {
 
     // MARK: - Wi-Fi
 
-    private func readWLAN(_ catalog: ServiceCatalog) async -> ([WLANRadio], [String: WiFiLink], String?) {
+    private func readWLAN(_ catalog: ServiceCatalog) async -> ([WLANRadio], [String: WiFiLink], [WLANSecurity], String?) {
         let instances = catalog.instances(of: "WLANConfiguration")
-        guard !instances.isEmpty else { return ([], [:], "Die WLAN-Daten konnten nicht gelesen werden.") }
+        guard !instances.isEmpty else { return ([], [:], [], "Die WLAN-Daten konnten nicht gelesen werden.") }
 
         var radios: [WLANRadio] = []
         var links: [String: WiFiLink] = [:]
+        var security: [WLANSecurity] = []
         var failed = false
         var firstSSID: String?
 
@@ -96,12 +101,17 @@ public struct FritzBoxReader: RouterAdapter {
             // VERIFY: the guest network is usually the last instance and has its own SSID.
             let isGuest = instances.count >= 3 && index == instances.count - 1 && ssid != firstSSID
             radios.append(WLANRadio(band: band, isEnabled: info["NewEnable"] == "1", channel: channel, ssid: ssid, isGuest: isGuest))
+            // Only the encryption type; the Wi-Fi password (GetSecurityKeys) is never read.
+            security.append(WLANSecurity(
+                band: band, ssid: ssid, isGuest: isGuest, isEnabled: info["NewEnable"] == "1",
+                encryption: WiFiEncryption.fromBeacon(info["NewBeaconType"], basicEncryption: info["NewBasicEncryptionModes"])
+            ))
 
             for (mac, link) in await readAssociations(entry.service, band: band) {
                 links[mac] = link
             }
         }
-        return (radios, links, failed ? "Ein Teil der WLAN-Daten fehlt." : nil)
+        return (radios, links, security, failed ? "Ein Teil der WLAN-Daten fehlt." : nil)
     }
 
     private func readAssociations(_ service: TR064Service, band: WiFiBand) async -> [String: WiFiLink] {

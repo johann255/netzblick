@@ -51,6 +51,8 @@ public struct HouseholdSnapshot: Hashable, Codable, Sendable {
     public var wan: WANStatus?
     public var radios: [WLANRadio]
     public var devices: [Device]
+    /// Security settings of the router; nil if the router cannot report them.
+    public var security: SecurityStatus?
     /// Parts of the reading that failed without stopping the rest, in plain German.
     public var warnings: [String]
 
@@ -60,6 +62,7 @@ public struct HouseholdSnapshot: Hashable, Codable, Sendable {
         wan: WANStatus? = nil,
         radios: [WLANRadio] = [],
         devices: [Device] = [],
+        security: SecurityStatus? = nil,
         warnings: [String] = []
     ) {
         self.takenAt = takenAt
@@ -67,6 +70,7 @@ public struct HouseholdSnapshot: Hashable, Codable, Sendable {
         self.wan = wan
         self.radios = radios
         self.devices = devices
+        self.security = security
         self.warnings = warnings
     }
 
@@ -82,6 +86,11 @@ public struct HouseholdSnapshot: Hashable, Codable, Sendable {
     }
 
     public var guestDevices: [Device] { devices.filter(\.isGuest) }
+
+    /// The home-network device with this IPv4 address, if the router lists one.
+    public func device(ip: String) -> Device? {
+        devices.first { $0.ipAddress == ip && !$0.isGuest }
+    }
 
     /// True if any 5 GHz or 6 GHz radio is switched on.
     public var hasFastRadio: Bool {

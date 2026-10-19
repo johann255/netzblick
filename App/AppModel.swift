@@ -90,6 +90,21 @@ final class AppModel {
         return "Unbekanntes Gerät"
     }
 
+    /// Security checklist for the current reading; empty while nothing is loaded.
+    var securityChecks: [SecurityCheckItem] {
+        guard let snapshot, snapshot.security != nil else { return [] }
+        return SecurityCheck.items(for: snapshot, newDeviceCount: newDeviceIDs.count)
+    }
+
+    var securityFindings: [Finding] { findings.filter(\.kind.isSecurity) }
+
+    /// Findings about slow Wi-Fi, for the diagnosis tab.
+    var speedFindings: [Finding] { findings.filter { !$0.kind.isSecurity } }
+
+    var canCheckSecurity: Bool {
+        currentRouter()?.capabilities.contains(.securityCheck) ?? false
+    }
+
     var canListen: Bool {
         currentRouter()?.capabilities.contains(.dnsListening) ?? false
     }

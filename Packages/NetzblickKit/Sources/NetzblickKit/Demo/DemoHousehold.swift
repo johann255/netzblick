@@ -23,7 +23,25 @@ public enum DemoHousehold {
                 WLANRadio(band: .ghz24, isEnabled: true, ssid: "Zuhause Gast", isGuest: true)
             ],
             devices: devices,
+            security: security,
             warnings: []
+        )
+    }
+
+    /// One forwarding to the NAS and remote access via MyFRITZ!, so the security screen has something to show.
+    private static var security: SecurityStatus {
+        SecurityStatus(
+            wlans: [
+                WLANSecurity(band: .ghz24, ssid: "Zuhause", encryption: .wpa2wpa3),
+                WLANSecurity(band: .ghz5, ssid: "Zuhause", encryption: .wpa2wpa3),
+                WLANSecurity(band: .ghz24, ssid: "Zuhause Gast", isGuest: true, encryption: .wpa2)
+            ],
+            portForwardings: [
+                PortForwarding(externalPort: 5001, internalPort: 5001, transport: .tcp,
+                               internalClient: "192.168.178.37", note: "Synology DSM")
+            ],
+            remoteAccess: RemoteAccess(httpsEnabled: false, myFritzEnabled: true),
+            wpsPinEnabled: false
         )
     }
 

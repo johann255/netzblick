@@ -18,11 +18,11 @@ struct DiagnosisView: View {
         } content: {
             lineCard
 
-            ForEach(Array(model.findings.enumerated()), id: \.element.id) { index, finding in
+            ForEach(Array(model.speedFindings.enumerated()), id: \.element.id) { index, finding in
                 findingCard(finding, rank: index + 1)
             }
 
-            if model.snapshot != nil && model.findings.isEmpty {
+            if model.snapshot != nil && model.speedFindings.isEmpty {
                 nothingFoundCard
             }
 
