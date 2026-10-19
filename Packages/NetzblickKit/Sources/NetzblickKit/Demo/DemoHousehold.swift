@@ -156,7 +156,7 @@ public enum DemoHousehold {
         bonjour: [String] = []
     ) -> Device {
         let address = macAddress(index)
-        return Device(
+        var device = Device(
             id: Device.makeID(mac: address, ip: nil),
             name: name,
             macAddress: address,
@@ -168,6 +168,10 @@ public enum DemoHousehold {
             category: category,
             bonjourServices: bonjour
         )
+        // The kind comes from the real classifier, as long as it agrees with the fixed category.
+        let guessed = DeviceClassifier().kind(for: device)
+        if guessed.category == category { device.kind = guessed }
+        return device
     }
 
     /// Locally administered MAC address derived from a running index: 02:4E:42:00:00:01, 02:4E:42:00:00:02, ...

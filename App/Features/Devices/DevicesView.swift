@@ -252,7 +252,7 @@ struct DevicesView: View {
                             NBRowDivider()
                         }
                         NBRow(
-                            symbol: guest.category.symbolName,
+                            symbol: guest.symbolName,
                             title: guest.name,
                             subtitle: "Abgeschottet · wird nicht ausgewertet"
                         )
@@ -297,7 +297,7 @@ private struct DeviceListRow: View {
                 .fill(device.isActive ? Color.nbTint : Color.nbLine)
                 .frame(width: 40, height: 40)
                 .overlay {
-                    Image(systemName: device.category.symbolName)
+                    Image(systemName: device.symbolName)
                         .font(.system(size: 18, weight: .medium))
                         .foregroundStyle(device.isActive ? Color.nbTintInk : Color.nbMuted)
                 }

@@ -27,69 +27,187 @@ public struct DeviceClassifier: Sendable {
         return vendors[String(hex.prefix(6))]
     }
 
-    // MARK: - Category
+    // MARK: - Kind and category
 
     public func category(for device: Device) -> DeviceCategory {
-        let name = device.name.lowercased()
-        if let byName = Self.rule(for: name, in: Self.nameRules) { return byName }
+        kind(for: device).category
+    }
+
+    /// Best guess what the device is. Order: name, then Bonjour services, then manufacturer.
+    public func kind(for device: Device) -> DeviceKind {
+        if !Self.isDefaultName(device.name), let byName = Self.kind(forName: device.name) {
+            return byName
+        }
         for service in device.bonjourServices {
             if let byService = Self.serviceRules[service] { return byService }
         }
-        if let vendor = device.vendor?.lowercased(), let byVendor = Self.rule(for: vendor, in: Self.vendorRules) {
+        if let vendor = device.vendor?.lowercased(),
+           let byVendor = Self.vendorRules.first(where: { vendor.contains($0.0) })?.1 {
             return byVendor
         }
         return .unknown
     }
 
-    private static func rule(for text: String, in rules: [(String, DeviceCategory)]) -> DeviceCategory? {
-        rules.first { text.contains($0.0) }?.1
+    /// FRITZ!OS names unnamed hosts "PC-192-168-178-40"; that "PC" says nothing.
+    static func isDefaultName(_ name: String) -> Bool {
+        name.range(of: #"^pc-\d+-\d+-\d+-\d+$"#, options: [.regularExpression, .caseInsensitive]) != nil
     }
 
-    /// Keyword in the device name → category. Checked in order; more specific words first.
-    static let nameRules: [(String, DeviceCategory)] = [
-        // Cameras before smart home, so "ring-cam" or "tapo-c200" end up here (Fing's "find hidden cameras").
-        ("kamera", .camera), ("camera", .camera), ("-cam", .camera), ("cam-", .camera), ("ipcam", .camera),
-        ("webcam", .camera), ("reolink", .camera), ("hikvision", .camera), ("dahua", .camera), ("arlo", .camera),
-        ("wyze", .camera), ("eufycam", .camera), ("tapo-c", .camera), ("tapo_c", .camera), ("blink", .camera),
-        ("repeater", .network), ("fritz", .network), ("powerline", .network), ("mesh", .network),
-        ("iphone", .phoneTablet), ("ipad", .phoneTablet), ("android", .phoneTablet), ("galaxy", .phoneTablet),
-        ("pixel", .phoneTablet), ("handy", .phoneTablet), ("tablet", .phoneTablet), ("redmi", .phoneTablet),
-        ("macbook", .computer), ("imac", .computer), ("mac-mini", .computer), ("laptop", .computer),
-        ("notebook", .computer), ("desktop", .computer), ("-pc", .computer), ("thinkpad", .computer),
-        ("drucker", .printer), ("printer", .printer), ("epson", .printer), ("brother", .printer), ("canon", .printer),
-        ("fernseher", .entertainment), ("-tv", .entertainment), ("tv-", .entertainment), ("bravia", .entertainment),
-        ("sonos", .entertainment), ("playstation", .entertainment), ("ps5", .entertainment), ("xbox", .entertainment),
-        ("nintendo", .entertainment), ("chromecast", .entertainment), ("firetv", .entertainment), ("fire-tv", .entertainment),
-        ("appletv", .entertainment), ("apple-tv", .entertainment), ("roku", .entertainment), ("echo", .entertainment),
-        ("homepod", .entertainment), ("lautsprecher", .entertainment), ("speaker", .entertainment),
-        ("shelly", .smartHome), ("tasmota", .smartHome), ("esp-", .smartHome), ("esp_", .smartHome),
-        ("hue", .smartHome), ("tado", .smartHome), ("thermostat", .smartHome), ("steckdose", .smartHome),
-        ("roborock", .smartHome), ("roomba", .smartHome), ("sauger", .smartHome), ("klingel", .smartHome),
-        ("ring-", .smartHome), ("nest", .smartHome), ("wallbox", .smartHome), ("wechselrichter", .smartHome),
-        ("inverter", .smartHome)
-    ]
+    static func kind(forName name: String) -> DeviceKind? {
+        let normalized = normalize(name)
+        let words = normalized.split(separator: " ").map(String.init)
+        let padded = " " + normalized + " "
+        for (pattern, kind) in nameRules {
+            switch pattern {
+            case let .part(text):
+                if padded.contains(text) { return kind }
+            case let .word(text):
+                if words.contains(where: { matches(word: $0, text) }) { return kind }
+            }
+        }
+        return nil
+    }
 
-    static let serviceRules: [String: DeviceCategory] = [
-        "_sonos._tcp": .entertainment,
-        "_googlecast._tcp": .entertainment,
-        "_airplay._tcp": .entertainment,
-        "_raop._tcp": .entertainment,
-        "_spotify-connect._tcp": .entertainment,
+    /// Lower-cased, everything that is not a letter or digit becomes one space ("Johanns-MBP" → "johanns mbp").
+    static func normalize(_ name: String) -> String {
+        let mapped = name.lowercased()
+            .replacingOccurrences(of: "ä", with: "ae").replacingOccurrences(of: "ö", with: "oe")
+            .replacingOccurrences(of: "ü", with: "ue").replacingOccurrences(of: "ß", with: "ss")
+            .map { $0.isLetter || $0.isNumber ? $0 : " " }
+        return String(mapped).split(separator: " ").joined(separator: " ")
+    }
+
+    /// A word matches exactly or followed only by digits ("mbp" matches "mbp16", "ps" does not match "pse").
+    private static func matches(word: String, _ text: String) -> Bool {
+        guard word.hasPrefix(text) else { return false }
+        return word.dropFirst(text.count).allSatisfy(\.isNumber)
+    }
+
+    enum Pattern: Sendable {
+        /// Substring of the normalized name; add spaces around it to match whole words.
+        case part(String)
+        /// A whole word, optionally followed by digits.
+        case word(String)
+    }
+
+    private static func parts(_ texts: [String], _ kind: DeviceKind) -> [(Pattern, DeviceKind)] {
+        texts.map { (.part($0), kind) }
+    }
+
+    private static func words(_ texts: [String], _ kind: DeviceKind) -> [(Pattern, DeviceKind)] {
+        texts.map { (.word($0), kind) }
+    }
+
+    /// Name keywords → kind. Checked in order; the more specific a rule, the earlier it stands.
+    static let nameRules: [(Pattern, DeviceKind)] = {
+        var r: [(Pattern, DeviceKind)] = []
+        // AVM smart-home devices before the generic "fritz" rule.
+        r += parts(["fritz dect 2", "fritzdect 2", "fritz smart energy 2"], .smartPlug)
+        r += parts(["fritz dect 3", "fritzdect 3", "fritz smart thermo"], .thermostat)
+        r += parts(["fritz dect 5", "fritzdect 5"], .light)
+        r += parts(["repeater", "mesh", "fritz wlan", "access point"], .repeater)
+        r += words(["eero", "deco", "unifi", "uap"], .repeater)
+        r += parts(["powerline", "fritz powerline", "devolo", "dlan"], .powerline)
+        r += words(["plc"], .powerline)
+        r += parts(["fritz", "speedport", "router", "vodafone station"], .router)
+        // Cameras before smart home, so "ring cam" or "tapo c200" land here (Fing's "find hidden cameras").
+        r += parts(["kamera", "camera", "webcam", "ipcam", "reolink", "hikvision", "dahua", "eufycam", "tapo c", "blink"], .camera)
+        r += words(["cam", "arlo", "wyze", "ipc", "foscam", "ezviz", "imou", "annke"], .camera)
+        // Phones, tablets, watches
+        r += parts(["iphone"], .iPhone)
+        r += parts(["ipad", "galaxy tab", "fire tablet", "kindle fire", "mediapad", "tab s", "lenovo tab"], .tablet)
+        r += parts(["apple watch", "applewatch", "galaxy watch", "pixel watch"], .watch)
+        r += parts(["kindle", "tolino", "kobo", "pocketbook", "remarkable"], .eReader)
+        r += parts(["galaxy", "android", "redmi", "xiaomi", "oneplus", "huawei", "honor", "oppo", "realme", "motorola", "nokia", "fairphone", "nothing phone", "poco", "smartphone", "handy"], .smartphone)
+        r += words(["pixel", "moto", "phone", "sm"], .smartphone)
+        r += words(["watch"], .watch)
+        r += words(["tablet"], .tablet)
+        // Computers
+        r += parts(["macbook", "thinkpad", "ideapad", "zenbook", "vivobook", "elitebook", "probook", "chromebook", "notebook", "laptop", "surface", "latitude", "inspiron", "spectre", "matebook", "yoga"], .laptop)
+        r += words(["mbp", "mba", "mb", "xps", "lt", "nb"], .laptop)
+        r += parts(["imac", "mac mini", "macmini", "mac studio", "macstudio", "mac pro", "desktop", "workstation"], .desktop)
+        r += words(["pc", "tower", "gaming"], .desktop)
+        r += parts(["synology", "diskstation", "qnap", "truenas", "unraid", "netzwerkspeicher", "fritz nas"], .nas)
+        r += words(["nas", "ds"], .nas)
+        r += parts(["raspberry", "pihole", "pi hole", "homeassistant", "home assistant", "proxmox", "server", "nuc"], .server)
+        r += words(["raspi", "rpi", "hass", "homebridge", "iobroker", "openhab"], .server)
+        r += words(["mac"], .computer)
+        // Entertainment
+        r += parts(["playstation", "xbox", "nintendo", "steam deck", "steamdeck", "konsole"], .console)
+        r += words(["ps"], .console)
+        r += parts(["apple tv", "appletv"], .appleTV)
+        r += parts(["chromecast", "fire tv", "firetv", "roku", "shield", "google tv", "magenta tv", "magentatv", "streaming", "waipu", "tv box", "mediabox", "media box", "tv stick", "zattoo", "kodi", "libreelec"], .streamingBox)
+        r += parts(["homepod"], .homePod)
+        r += parts(["sonos", "bose", "alexa", "nest audio", "nest mini", "google home", "home mini", "bluesound", "teufel", "raumfeld", "lautsprecher", "speaker", "soundbar", "marshall", "libratone", "denon home", "harman", "jbl", "ue boom", "beosound", "bang olufsen"], .speaker)
+        r += words(["echo", "heos", "audio", "radio"], .speaker)
+        r += parts(["receiver", "denon", "marantz", "yamaha", "onkyo", "pioneer"], .avReceiver)
+        r += words(["avr"], .avReceiver)
+        r += parts(["fernseher", "bravia", "webos", "lgwebostv", "tizen", "ambilight", "hisense", "smart tv", "smarttv", "philips tv", "grundig", "loewe", "metz"], .tv)
+        r += words(["tv", "oled", "qled"], .tv)
+        // Smart home
+        r += parts(["klingel", "doorbell", "ring doorbell"], .doorbell)
+        r += words(["ring"], .doorbell)
+        r += parts(["nuki", "tuerschloss", "smartlock", "smart lock"], .lock)
+        r += parts(["hue bridge", "bridge", "homematic", "raspberrymatic", "ccu", "conbee", "deconz", "zigbee", "homey", "aqara hub", "tado bridge", "smartthings", "home center", "homepilot", "gateway"], .hub)
+        r += words(["hub"], .hub)
+        r += parts(["tado", "thermostat", "heizung", "netatmo", "ecobee", "comet dect", "viessmann", "vaillant", "buderus", "waermepumpe", "heatpump", "daikin", "klima"], .thermostat)
+        r += parts(["steckdose", "plug", "meross", "shelly", "tasmota", "sonoff", "tapo p", "kasa", "gosund", "nous", "switchbot", "smart socket", "relay", "relais"], .smartPlug)
+        r += parts(["hue", "nanoleaf", "lifx", "tradfri", "govee", "yeelight", "lampe", "licht", "light", "bulb", "leuchte", "led strip", "ledstrip", "wled", "twinkly"], .light)
+        r += words(["wiz", "led"], .light)
+        r += parts(["aqara", "sensor", "airthings", "awair", "wetter", "weather", "luftqualitaet", "rauchmelder", "smoke", "leak", "eve "], .sensor)
+        r += words(["eve"], .sensor)
+        r += parts(["roborock", "roomba", "irobot", "ecovacs", "deebot", "dreame", "staubsauger", "sauger", "vacuum", "neato", "rockrobo", "valetudo", "saugroboter", "wischroboter"], .vacuum)
+        r += parts(["maehroboter", "mower", "automower", "gardena", "landroid", "worx", "rasenmaeher"], .mower)
+        r += parts(["miele", "homeconnect", "home connect", "bsh", "waschmaschine", "washer", "trockner", "dryer", "geschirrspueler", "spuelmaschine", "dishwasher", "kuehlschrank", "fridge", "backofen", "oven", "thermomix", "kaffee", "coffee", "jura", "delonghi", "dunstabzug", "airfryer"], .appliance)
+        r += parts(["wallbox", "easee", "openwb", "keba", "go echarger", "goe charger", "ev charger", "zappi", "ladestation"], .evCharger)
+        r += parts(["wechselrichter", "inverter", "fronius", "kostal", "solaredge", "enphase", "envoy", "hoymiles", "opendtu", "ahoy", "zendure", "solix", "ecoflow", "powerstation", "batteriespeicher", "solar", "photovoltaik"], .solar)
+        r += words(["sma", "pv"], .solar)
+        r += parts(["tesla", "polestar", "volkswagen", "bmw", "skoda"], .car)
+        r += parts(["tuya", "smartlife", "smart life"], .smartHomeDevice)
+        r += words(["esp", "nodemcu", "wemos"], .smartHomeDevice)
+        // Printers
+        r += parts(["drucker", "printer", "officejet", "deskjet", "laserjet", "pixma", "ecotank", "workforce", "brother", "epson", "canon", "kyocera", "xerox", "lexmark", "ricoh"], .printer)
+        r += words(["mfc", "dcp", "hl", "hp"], .printer)
+        return r
+    }()
+
+    static let serviceRules: [String: DeviceKind] = [
+        "_sonos._tcp": .speaker,
+        "_googlecast._tcp": .streamingBox,
+        "_airplay._tcp": .mediaDevice,
+        "_raop._tcp": .speaker,
+        "_spotify-connect._tcp": .speaker,
         "_ipp._tcp": .printer,
         "_printer._tcp": .printer,
-        "_hap._tcp": .smartHome,
-        "_matter._tcp": .smartHome,
-        "_companion-link._tcp": .phoneTablet,
+        "_pdl-datastream._tcp": .printer,
+        "_hap._tcp": .smartHomeDevice,
+        "_matter._tcp": .smartHomeDevice,
+        "_companion-link._tcp": .smartphone,
         "_rtsp._tcp": .camera
     ]
 
-    static let vendorRules: [(String, DeviceCategory)] = [
+    /// Manufacturer (from the MAC prefix) → kind. Only makers that build one kind of device.
+    static let vendorRules: [(String, DeviceKind)] = [
         ("hikvision", .camera), ("dahua", .camera), ("reolink", .camera), ("axis", .camera),
         ("arlo", .camera), ("wyze", .camera), ("foscam", .camera), ("amcrest", .camera), ("ezviz", .camera),
-        ("sonos", .entertainment),
-        ("avm", .network),
-        ("espressif", .smartHome),
-        ("raspberry", .computer)
+        ("sonos", .speaker), ("bose", .speaker), ("bluesound", .speaker),
+        ("meross", .smartPlug), ("shelly", .smartPlug), ("allterco", .smartPlug),
+        ("eve systems", .sensor), ("aqara", .sensor), ("lumi united", .sensor),
+        ("signify", .hub), ("philips lighting", .hub), ("nanoleaf", .light), ("lifx", .light),
+        ("tado", .thermostat), ("netatmo", .thermostat), ("nuki", .lock), ("ring", .doorbell),
+        ("roborock", .vacuum), ("ecovacs", .vacuum), ("irobot", .vacuum), ("dreame", .vacuum),
+        ("husqvarna", .mower),
+        ("synology", .nas), ("qnap", .nas),
+        ("raspberry", .server),
+        ("nintendo", .console), ("sony interactive", .console), ("valve", .console),
+        ("roku", .streamingBox),
+        ("brother", .printer), ("seiko epson", .printer), ("canon", .printer), ("kyocera", .printer),
+        ("miele", .appliance), ("bsh", .appliance),
+        ("fronius", .solar), ("sma solar", .solar),
+        ("tesla", .car),
+        ("ubiquiti", .repeater),
+        ("avm", .router),
+        ("espressif", .smartHomeDevice), ("tuya", .smartHomeDevice)
     ]
 
     /// A small seed table of well-known prefixes. Replace with the full IEEE list via

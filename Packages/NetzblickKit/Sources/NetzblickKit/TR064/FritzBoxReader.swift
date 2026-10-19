@@ -208,7 +208,8 @@ public struct FritzBoxReader: RouterAdapter {
             connection: connection
         )
         device.vendor = mac.flatMap { classifier.vendor(forMAC: $0) }
-        device.category = classifier.category(for: device)
+        device.kind = classifier.kind(for: device)
+        device.category = device.kind.category
         return device
     }
 

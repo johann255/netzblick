@@ -21,7 +21,7 @@ Legende: ✅ vorhanden · 🔨 in Arbeit (dieser Plan, Phase 1–3) · 🕓 spä
 | Fing / Fingbox | Netzblick | Wie, ohne Cloud | Status |
 | --- | --- | --- | --- |
 | Netzwerk-Scan (alle Geräte) | Geräteliste | Hostliste der FRITZ!Box | ✅ |
-| Geräteerkennung (Typ, Hersteller) | Klassifizierung | MAC-Präfix, Name, Bonjour; volle IEEE-OUI-Liste mitliefern | ✅ / 🕓 volle Liste |
+| Geräteerkennung (Typ, Hersteller) | Gerätetyp mit Icon | rund 40 Gerätetypen aus Name (z. B. „MBP“ → Laptop), Bonjour und Hersteller; volle IEEE-OUI-Liste mitliefern | ✅ / 🕓 volle Liste |
 | Geräteerkennung (Modell, Betriebssystem) | Modellangabe | Bonjour `_device-info._tcp` (TXT `model=`), HTTP-Titel; SSDP braucht Multicast-Berechtigung | 🕓 |
 | Neue Geräte melden („Eindringling“) | „Neu“-Markierung | Vergleich mit bekannten Geräten | ✅ |
 | Benachrichtigung bei neuem Gerät | Wachhund | Hintergrundabruf (`BGAppRefreshTask`) + lokale Mitteilung. iOS bestimmt den Takt, also kein Echtzeit-Alarm | 🔨 Phase 2 |

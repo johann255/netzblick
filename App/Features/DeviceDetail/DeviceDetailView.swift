@@ -184,6 +184,10 @@ struct DeviceDetailView: View {
             NBCard {
                 VStack(spacing: 0) {
                     factRow("Status", value: device.isActive ? "Online" : "Schläft gerade")
+                    if device.kind != .unknown {
+                        NBRowDivider()
+                        factRow("Gerätetyp", value: device.kind.title, note: "geschätzt aus Name, Hersteller und Diensten")
+                    }
                     NBRowDivider()
                     factRow("Verbindung", value: connectionText(device.connection))
 
