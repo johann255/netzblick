@@ -64,51 +64,61 @@ public struct ThroughputMeter: Sendable {
 }
 
 #if canImport(Darwin)
-/// Downloads test data for a few seconds and reports live throughput.
+/// Downloads test data for a few seconds over several parallel connections and reports live throughput.
 ///
 /// Privacy: the test server sees this iPhone's public IP address, like any website.
 /// Netzblick sends nothing else and stores the result only on the device.
 public final class SpeedTester: @unchecked Sendable {
-    /// Endpoint that streams `bytes` of random data. Must allow large downloads.
+    /// Endpoint that streams random data; one request per connection, restarted when it ends early.
+    /// Cloudflare answers 403 from 100 MB per request, so a single request caps the result near 100 Mbit/s.
     /// DECIDE before release: run on an own endpoint or confirm terms of use of a public one.
     public var endpoint: URL
     public var duration: TimeInterval
     public var maxBytes: Int64
+    /// Parallel connections; one TCP stream rarely fills a fast line.
+    public var connections: Int
 
     public init(
-        endpoint: URL = URL(string: "https://speed.cloudflare.com/__down?bytes=250000000")!,
+        endpoint: URL = URL(string: "https://speed.cloudflare.com/__down?bytes=50000000")!,
         duration: TimeInterval = 8,
-        maxBytes: Int64 = 250_000_000
+        maxBytes: Int64 = 1_000_000_000,
+        connections: Int = 4
     ) {
         self.endpoint = endpoint
         self.duration = duration
         self.maxBytes = maxBytes
+        self.connections = connections
     }
 
     /// Runs the test. Calls `onSample` about every 0.25 s on an arbitrary thread.
     public func run(onSample: @escaping @Sendable (SpeedSample) -> Void) async throws -> SpeedResult {
         // Chunks arrive through a delegate: iterating AsyncBytes byte by byte is too slow above ~100 Mbit/s.
-        let (chunks, continuation) = AsyncThrowingStream<Int, Error>.makeStream()
+        let (events, continuation) = AsyncThrowingStream<ChunkCounter.Event, Error>.makeStream()
         let delegate = ChunkCounter(continuation: continuation)
         let config = URLSessionConfiguration.ephemeral
         config.requestCachePolicy = .reloadIgnoringLocalAndRemoteCacheData
         config.timeoutIntervalForRequest = 10
+        config.httpMaximumConnectionsPerHost = connections
         let session = URLSession(configuration: config, delegate: delegate, delegateQueue: nil)
-        let task = session.dataTask(with: endpoint)
-        defer {
-            task.cancel()
-            session.invalidateAndCancel()
+        defer { session.invalidateAndCancel() }
+        for _ in 0..<max(connections, 1) {
+            session.dataTask(with: endpoint).resume()
         }
-        task.resume()
 
         var meter = ThroughputMeter()
         let start = Date()
         var total: Int64 = 0
         var lastReport: TimeInterval = 0
 
-        for try await count in chunks {
-            total += Int64(count)
+        for try await event in events {
             let t = Date().timeIntervalSince(start)
+            switch event {
+            case .bytes(let count):
+                total += Int64(count)
+            case .requestFinished:
+                // A connection ran out of data before the time was up: start the next request.
+                if t < duration { session.dataTask(with: endpoint).resume() }
+            }
             if t - lastReport >= 0.25 {
                 let current = meter.record(t: t, totalBytes: total)
                 onSample(SpeedSample(elapsed: t, currentMbps: current, progress: min(t / duration, 1)))
@@ -125,9 +135,14 @@ public final class SpeedTester: @unchecked Sendable {
 }
 
 private final class ChunkCounter: NSObject, URLSessionDataDelegate, @unchecked Sendable {
-    let continuation: AsyncThrowingStream<Int, Error>.Continuation
+    enum Event: Sendable {
+        case bytes(Int)
+        case requestFinished
+    }
 
-    init(continuation: AsyncThrowingStream<Int, Error>.Continuation) {
+    let continuation: AsyncThrowingStream<Event, Error>.Continuation
+
+    init(continuation: AsyncThrowingStream<Event, Error>.Continuation) {
         self.continuation = continuation
     }
 
@@ -142,14 +157,14 @@ private final class ChunkCounter: NSObject, URLSessionDataDelegate, @unchecked S
     }
 
     func urlSession(_ session: URLSession, dataTask: URLSessionDataTask, didReceive data: Data) {
-        continuation.yield(data.count)
+        continuation.yield(.bytes(data.count))
     }
 
     func urlSession(_ session: URLSession, task: URLSessionTask, didCompleteWithError error: Error?) {
-        if let error, (error as? URLError)?.code != .cancelled {
-            continuation.finish(throwing: error)
+        if let error {
+            if (error as? URLError)?.code != .cancelled { continuation.finish(throwing: error) }
         } else {
-            continuation.finish()
+            continuation.yield(.requestFinished)
         }
     }
 }
