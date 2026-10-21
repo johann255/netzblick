@@ -99,7 +99,7 @@ struct FindingDetailView: View {
                         NBRowDivider()
                     }
                     NBRow(
-                        symbol: device.category.symbolName,
+                        symbol: device.symbolName,
                         title: device.name,
                         subtitle: device.connectionSummary
                     )

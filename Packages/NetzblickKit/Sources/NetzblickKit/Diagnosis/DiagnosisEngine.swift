@@ -17,6 +17,10 @@ public struct DiagnosisEngine: Sendable {
         result += weakSignal(snapshot)
         result += wifiBottleneck(snapshot, phoneSpeedMbps: phoneSpeedMbps)
         result += firmwareUpdate(snapshot)
+        result += wifiEncryption(snapshot)
+        result += wps(snapshot)
+        result += portForwardings(snapshot)
+        result += remoteAccess(snapshot)
         return result.sorted { ($0.severity, $0.title) < ($1.severity, $1.title) }
     }
 
@@ -139,6 +143,93 @@ public struct DiagnosisEngine: Sendable {
                 "Öffne fritz.box im Browser und melde dich an.",
                 "Gehe zu System → Update.",
                 "Starte das Update, wenn gerade niemand telefoniert oder streamt."
+            ]
+        )]
+    }
+}
+
+// MARK: - Security rules
+
+extension DiagnosisEngine {
+    func wifiEncryption(_ s: HouseholdSnapshot) -> [Finding] {
+        let home = (s.security?.wlans ?? []).filter { $0.isEnabled && !$0.isGuest }
+        let weak = home.filter { [WiFiEncryption.open, .wep, .wpaLegacy].contains($0.encryption) }
+        guard !weak.isEmpty else { return [] }
+        let isOpen = weak.contains { $0.encryption == .open || $0.encryption == .wep }
+        let name = weak.first?.ssid.map { "„\($0)“" } ?? "Dein WLAN"
+        return [Finding(
+            id: "wifi-encryption",
+            kind: .wifiEncryption,
+            severity: isOpen ? .high : .medium,
+            title: isOpen ? "\(name) ist offen" : "\(name) nutzt eine veraltete Verschlüsselung",
+            explanation: isOpen
+                ? "Wer in der Nähe ist, kann sich ohne Passwort verbinden und mitlesen, was nicht zusätzlich verschlüsselt ist."
+                : "Das alte WPA lässt sich knacken. WPA2 und WPA3 funktionieren mit allen Geräten der letzten zehn Jahre.",
+            scope: "ganzes WLAN",
+            howTo: [
+                "Öffne fritz.box im Browser und melde dich an.",
+                "Gehe zu WLAN → Sicherheit → Verschlüsselung.",
+                "Wähle „WPA2 + WPA3“ und vergib ein langes Passwort.",
+                "Verbinde danach alle Geräte einmal neu mit dem WLAN."
+            ]
+        )]
+    }
+
+    func wps(_ s: HouseholdSnapshot) -> [Finding] {
+        guard s.security?.wpsPinEnabled == true else { return [] }
+        return [Finding(
+            id: "wps-pin",
+            kind: .wps,
+            severity: .medium,
+            title: "WPS mit PIN ist eingeschaltet",
+            explanation: "Über die WPS-PIN kann sich ein Gerät ohne WLAN-Passwort anmelden. Die PIN lässt sich in Stunden erraten.",
+            scope: "ganzes WLAN",
+            howTo: [
+                "Öffne fritz.box im Browser und melde dich an.",
+                "Gehe zu WLAN → Sicherheit → WPS-Schnellverbindung.",
+                "Schalte das PIN-Verfahren aus. Die Taste an der Box (Push-Button) kannst du behalten."
+            ]
+        )]
+    }
+
+    func portForwardings(_ s: HouseholdSnapshot) -> [Finding] {
+        let open = s.security?.activeForwardings ?? []
+        guard !open.isEmpty else { return [] }
+        let byClient = Dictionary(grouping: open, by: \.internalClient)
+        let devices = byClient.keys.compactMap { s.device(ip: $0) }
+        let names = byClient.keys.sorted().map { ip in s.device(ip: ip)?.name ?? ip }
+        let ports = open.map { "\($0.externalPort)/\($0.transport.rawValue)" }.sorted().prefix(4).joined(separator: ", ")
+        let subject = byClient.count == 1 ? "\(names[0]) ist" : "\(byClient.count) Geräte sind"
+        return [Finding(
+            id: "port-forwarding",
+            kind: .portForwarding,
+            severity: .medium,
+            title: "\(subject) aus dem Internet erreichbar",
+            explanation: "Die FRITZ!Box leitet Anfragen aus dem Internet weiter (Port \(ports)). "
+                + "Das braucht es etwa für Spielkonsolen oder einen eigenen Server. Kennst du die Freigabe nicht, schalte sie ab.",
+            scope: byClient.count == 1 ? "1 Gerät" : "\(byClient.count) Geräte",
+            deviceIDs: devices.map(\.id),
+            howTo: [
+                "Öffne fritz.box im Browser und melde dich an.",
+                "Gehe zu Internet → Freigaben → Portfreigaben.",
+                "Entferne Freigaben, die du nicht kennst. Bei Geräten mit „Selbstständige Portfreigaben“ kannst du das Häkchen abwählen."
+            ]
+        )]
+    }
+
+    func remoteAccess(_ s: HouseholdSnapshot) -> [Finding] {
+        guard let remote = s.security?.remoteAccess, remote.httpsEnabled else { return [] }
+        return [Finding(
+            id: "remote-access",
+            kind: .remoteAccess,
+            severity: .info,
+            title: "Die FRITZ!Box ist aus dem Internet erreichbar",
+            explanation: "Der Fernzugriff über HTTPS ist an. Mit einem starken Passwort ist das in Ordnung. Nutzt du ihn nicht, ist aus besser.",
+            scope: "FRITZ!Box",
+            howTo: [
+                "Öffne fritz.box im Browser und melde dich an.",
+                "Gehe zu Internet → Freigaben → FRITZ!Box-Dienste.",
+                "Nimm das Häkchen bei „Internetzugriff auf die FRITZ!Box über HTTPS“ heraus, wenn du ihn nicht brauchst."
             ]
         )]
     }

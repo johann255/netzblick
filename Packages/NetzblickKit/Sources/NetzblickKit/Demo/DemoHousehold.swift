@@ -23,7 +23,25 @@ public enum DemoHousehold {
                 WLANRadio(band: .ghz24, isEnabled: true, ssid: "Zuhause Gast", isGuest: true)
             ],
             devices: devices,
+            security: security,
             warnings: []
+        )
+    }
+
+    /// One forwarding to the NAS and remote access via MyFRITZ!, so the security screen has something to show.
+    private static var security: SecurityStatus {
+        SecurityStatus(
+            wlans: [
+                WLANSecurity(band: .ghz24, ssid: "Zuhause", encryption: .wpa2wpa3),
+                WLANSecurity(band: .ghz5, ssid: "Zuhause", encryption: .wpa2wpa3),
+                WLANSecurity(band: .ghz24, ssid: "Zuhause Gast", isGuest: true, encryption: .wpa2)
+            ],
+            portForwardings: [
+                PortForwarding(externalPort: 5001, internalPort: 5001, transport: .tcp,
+                               internalClient: "192.168.178.37", note: "Synology DSM")
+            ],
+            remoteAccess: RemoteAccess(httpsEnabled: false, myFritzEnabled: true),
+            wpsPinEnabled: false
         )
     }
 
@@ -43,6 +61,35 @@ public enum DemoHousehold {
             trackingShare: 0.31,
             isDemo: true
         )
+    }
+
+    /// A presence history for the demo: a few days of phones coming and going, and the new device arriving.
+    public static func presenceLog(now: Date = Date()) -> PresenceLog {
+        let all = devices
+        let newID = newDeviceIDs.first
+        let phones: Set<String> = ["Mein iPhone", "Annas iPhone", "Galaxy S24", "MacBook", "Laptop Arbeit"]
+        var log = PresenceLog()
+
+        func reading(hoursAgo: Double, away: Set<String>, withNew: Bool) -> HouseholdSnapshot {
+            let list = all.compactMap { device -> Device? in
+                if device.id == newID && !withNew { return nil }
+                var copy = device
+                if phones.contains(device.name) { copy.isActive = !away.contains(device.name) }
+                return copy
+            }
+            return HouseholdSnapshot(takenAt: now.addingTimeInterval(-hoursAgo * 3600), box: snapshot(now: now).box, devices: list)
+        }
+
+        // Weekday rhythm: work devices leave in the morning and come back in the evening.
+        let schedule: [(Double, Set<String>, Bool)] = [
+            (72, [], false), (62, ["Annas iPhone", "Laptop Arbeit"], false), (52, [], false),
+            (38, ["Annas iPhone", "Laptop Arbeit", "Mein iPhone"], false), (28, [], false),
+            (14, ["Annas iPhone", "Laptop Arbeit"], false), (5, ["Annas iPhone"], true), (0, [], true)
+        ]
+        for (hoursAgo, away, withNew) in schedule {
+            log.record(reading(hoursAgo: hoursAgo, away: away, withNew: withNew))
+        }
+        return log
     }
 
     // MARK: - Devices (31 in total, 23 active)
@@ -85,9 +132,9 @@ public enum DemoHousehold {
             device(25, "Smarte Steckdose 2", vendor: "Tuya", category: .smartHome, connection: wlan(.ghz24, 52)),
             device(26, "Smarte Steckdose 3", vendor: "Tuya", category: .smartHome, connection: wlan(.ghz24, 35), active: false),
             device(27, "Türklingel", vendor: "Siedle", category: .smartHome, connection: wlan(.ghz24, 40)),
-            device(28, "Kamera Garten", vendor: "Reolink", category: .smartHome, connection: wlan(.ghz24, 47)),
+            device(28, "Kamera Garten", vendor: "Reolink", category: .camera, connection: wlan(.ghz24, 47)),
 
-            // Drucker
+            // Drucker (the camera above sits in its own group)
             device(29, "Drucker Arbeitszimmer", vendor: "HP", category: .printer, connection: wlan(.ghz24, 56), bonjour: ["_ipp._tcp"]),
 
             // Netzwerk
@@ -109,7 +156,7 @@ public enum DemoHousehold {
         bonjour: [String] = []
     ) -> Device {
         let address = macAddress(index)
-        return Device(
+        var device = Device(
             id: Device.makeID(mac: address, ip: nil),
             name: name,
             macAddress: address,
@@ -121,6 +168,10 @@ public enum DemoHousehold {
             category: category,
             bonjourServices: bonjour
         )
+        // The kind comes from the real classifier, as long as it agrees with the fixed category.
+        let guessed = DeviceClassifier().kind(for: device)
+        if guessed.category == category { device.kind = guessed }
+        return device
     }
 
     /// Locally administered MAC address derived from a running index: 02:4E:42:00:00:01, 02:4E:42:00:00:02, ...

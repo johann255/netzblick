@@ -153,7 +153,7 @@ struct ListenView: View {
     private func deviceRow(_ entry: DeviceListen) -> some View {
         let tracking = Int((entry.share(.tracking) * 100).rounded())
         return NBRow(
-            symbol: model.device(id: entry.deviceID)?.category.symbolName ?? "questionmark.circle",
+            symbol: model.device(id: entry.deviceID)?.symbolName ?? "questionmark.circle",
             title: model.deviceName(id: entry.deviceID),
             subtitle: "\(entry.total) Anfragen · \(tracking) % Werbung & Tracking"
         ) {

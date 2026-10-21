@@ -24,6 +24,18 @@ public enum FindingKind: String, Codable, Sendable {
     case slowBand
     case weakSignal
     case wifiBottleneck
+    case wifiEncryption
+    case portForwarding
+    case remoteAccess
+    case wps
+
+    /// Security findings get their own screen; the rest explain slow Wi-Fi.
+    public var isSecurity: Bool {
+        switch self {
+        case .wifiEncryption, .portForwarding, .remoteAccess, .wps, .firmwareUpdate: return true
+        case .internetDown, .slowBand, .weakSignal, .wifiBottleneck: return false
+        }
+    }
 }
 
 /// A plain-language problem with a suggested next step.

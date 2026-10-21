@@ -7,6 +7,7 @@ struct DiagnosisView: View {
 
     @Environment(AppModel.self) private var model
     @Environment(\.nbAccent) private var accent
+    @State private var showWalk = false
 
     var body: some View {
         NBScreen {
@@ -18,12 +19,22 @@ struct DiagnosisView: View {
         } content: {
             lineCard
 
-            ForEach(Array(model.findings.enumerated()), id: \.element.id) { index, finding in
+            ForEach(Array(model.speedFindings.enumerated()), id: \.element.id) { index, finding in
                 findingCard(finding, rank: index + 1)
             }
 
-            if model.snapshot != nil && model.findings.isEmpty {
+            if model.snapshot != nil && model.speedFindings.isEmpty {
                 nothingFoundCard
+            }
+
+            if model.canWalkSignal {
+                Button {
+                    showWalk = true
+                } label: {
+                    Text("WLAN-Messgang durch die Wohnung")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(NBSecondaryButtonStyle())
             }
 
             Button {
@@ -36,6 +47,9 @@ struct DiagnosisView: View {
         }
         .toolbar(.hidden, for: .navigationBar)
         .refreshable { await model.refresh() }
+        .sheet(isPresented: $showWalk) {
+            SignalWalkView()
+        }
     }
 
     // MARK: - Header
@@ -61,6 +75,10 @@ struct DiagnosisView: View {
 
                 if let speed = model.lastSpeed {
                     measuredPart(speed)
+                }
+
+                if model.speedHistory.results.count >= 2 {
+                    historyPart
                 }
 
                 Button {
@@ -132,6 +150,47 @@ struct DiagnosisView: View {
                     .font(.nbSans(14))
                     .foregroundStyle(Color.nbInkSoft)
             }
+        }
+    }
+
+    // MARK: - Verlauf
+
+    private var historyPart: some View {
+        let recent = model.speedHistory.recent(12)
+        let maxValue = max(recent.map(\.downloadMbps).max() ?? 1, 1)
+
+        return VStack(alignment: .leading, spacing: 8) {
+            Text("Deine letzten Messungen")
+                .font(.nbSans(13))
+                .foregroundStyle(Color.nbMuted)
+
+            HStack(alignment: .bottom, spacing: 4) {
+                ForEach(Array(recent.enumerated()), id: \.offset) { _, result in
+                    let level = SpeedRating.rate(downloadMbps: result.downloadMbps, bookedMbps: model.bookedDownloadMbps).level
+                    RoundedRectangle(cornerRadius: 3, style: .continuous)
+                        .fill(color(for: level))
+                        .frame(height: max(4, 48 * result.downloadMbps / maxValue))
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            .frame(height: 48, alignment: .bottom)
+            .accessibilityElement()
+            .accessibilityLabel(recent.map { "\(Int($0.downloadMbps.rounded())) Mbit/s" }.joined(separator: ", "))
+
+            if let summary = model.speedHistory.summary(bookedMbps: model.bookedDownloadMbps) {
+                Text(summary)
+                    .font(.nbSans(14))
+                    .foregroundStyle(Color.nbInkSoft)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+
+    private func color(for level: SpeedLevel) -> Color {
+        switch level {
+        case .slow: return .nbSpeedSlow
+        case .ok: return .nbSpeedOk
+        case .fast: return .nbSpeedFast
         }
     }
 

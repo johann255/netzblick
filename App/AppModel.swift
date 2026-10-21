@@ -21,6 +21,12 @@ final class AppModel {
     /// Plain-German error for the last failed reading, shown as a banner.
     var errorMessage: String?
     private(set) var lastSpeed: SpeedResult?
+    /// Every speed test on this iPhone, oldest first.
+    private(set) var speedHistory = SpeedHistory()
+    /// Rooms noted during the Wi-Fi walk; kept until "Neu beginnen" so the map survives closing the sheet.
+    private(set) var signalWalk = SignalWalk()
+    /// Who was online when; only devices of the home network, kept 30 days on this iPhone.
+    private(set) var presenceLog = PresenceLog()
 
     /// Last finished listening session; only counts, never packets.
     private(set) var listenReport: ListenReport?
@@ -37,11 +43,14 @@ final class AppModel {
     private let defaults = UserDefaults.standard
     private let engine = DiagnosisEngine()
     private let detector = NewDeviceDetector()
+    private let presenceStore = PresenceStore()
 
     private enum Key {
         static let demoMode = "demoMode"
         static let knownDeviceIDs = "knownDeviceIDs"
         static let lastSpeed = "lastSpeed"
+        static let speedHistory = "speedHistory"
+        static let signalWalk = "signalWalk"
         static let listenReport = "listenReport"
         static let bookedDownloadMbps = "bookedDownloadMbps"
         static let accentBlue = "accentBlue"
@@ -51,11 +60,22 @@ final class AppModel {
         if let data = defaults.data(forKey: Key.lastSpeed) {
             lastSpeed = try? JSONDecoder().decode(SpeedResult.self, from: data)
         }
+        if let data = defaults.data(forKey: Key.signalWalk) {
+            signalWalk = (try? JSONDecoder().decode(SignalWalk.self, from: data)) ?? SignalWalk()
+        }
+        if let data = defaults.data(forKey: Key.speedHistory),
+           let history = try? JSONDecoder().decode(SpeedHistory.self, from: data) {
+            speedHistory = history
+        } else if let lastSpeed {
+            // Measurements from before the history existed.
+            speedHistory.append(lastSpeed)
+        }
         if let data = defaults.data(forKey: Key.listenReport) {
             listenReport = try? JSONDecoder().decode(ListenReport.self, from: data)
         }
         if let saved = keychain.load() {
             mode = .live(host: saved.host)
+            presenceLog = presenceStore.load()
         } else if defaults.bool(forKey: Key.demoMode) {
             mode = .demo
         }
@@ -88,6 +108,21 @@ final class AppModel {
         if let device = device(id: id) { return device.name }
         if id.hasPrefix("ip:") { return "Unbekanntes Gerät (\(id.dropFirst(3)))" }
         return "Unbekanntes Gerät"
+    }
+
+    /// Security checklist for the current reading; empty while nothing is loaded.
+    var securityChecks: [SecurityCheckItem] {
+        guard let snapshot, snapshot.security != nil else { return [] }
+        return SecurityCheck.items(for: snapshot, newDeviceCount: newDeviceIDs.count)
+    }
+
+    var securityFindings: [Finding] { findings.filter(\.kind.isSecurity) }
+
+    /// Findings about slow Wi-Fi, for the diagnosis tab.
+    var speedFindings: [Finding] { findings.filter { !$0.kind.isSecurity } }
+
+    var canCheckSecurity: Bool {
+        currentRouter()?.capabilities.contains(.securityCheck) ?? false
     }
 
     var canListen: Bool {
@@ -211,6 +246,88 @@ final class AppModel {
         writeWidgetSummary()
     }
 
+    /// Runs when iOS wakes the app in the background: read the box, announce new devices, plan the next run.
+    func backgroundRefresh() async {
+        defer { NewDeviceAlerts.schedule() }
+        guard case .live = mode else { return }
+        await refresh()
+        let fresh = newDeviceIDs.compactMap { device(id: $0) }
+        await NewDeviceAlerts.announce(fresh)
+    }
+
+    // MARK: Tools
+
+    var canWalkSignal: Bool {
+        currentRouter()?.capabilities.contains(.wifiSurvey) ?? false
+    }
+
+    func noteRoom(_ name: String, link: WiFiLink) {
+        signalWalk.note(name, link: link)
+        saveWalk()
+    }
+
+    func removeRoom(id: UUID) {
+        signalWalk.remove(id: id)
+        saveWalk()
+    }
+
+    func resetWalk() {
+        signalWalk.reset()
+        saveWalk()
+    }
+
+    private func saveWalk() {
+        defaults.set(try? JSONEncoder().encode(signalWalk), forKey: Key.signalWalk)
+    }
+
+    /// The signal the router reports for this iPhone right now; nil if it is not on Wi-Fi or the box does not say.
+    func ownWiFiLink() async -> WiFiLink? {
+        guard let router = currentRouter(), router.capabilities.contains(.wifiSurvey) else { return nil }
+        let ip = isDemo ? "192.168.178.28" : LocalAddress.wifiIPv4()
+        guard let ip else { return nil }
+        return try? await router.readWiFiLink(ip: ip)
+    }
+
+    var canWakeDevices: Bool {
+        currentRouter()?.capabilities.contains(.wakeOnLAN) ?? false
+    }
+
+    /// Pings a device of the home network. Demo devices answer with made-up times.
+    func ping(_ device: Device) async -> PingResult? {
+        guard !device.isGuest else { return nil }
+        if isDemo {
+            try? await Task.sleep(for: .milliseconds(600))
+            return device.isActive ? PingResult(sent: 3, received: 3, averageMs: 6) : PingResult(sent: 3, received: 0, averageMs: nil)
+        }
+        guard let ip = device.ipAddress else { return nil }
+        return await Pinger().ping(ip)
+    }
+
+    /// Which well-known services a device of the home network offers.
+    func openServices(_ device: Device) async -> [KnownService]? {
+        guard !device.isGuest else { return nil }
+        if isDemo {
+            try? await Task.sleep(for: .seconds(1))
+            let ports: [UInt16] = device.category == .camera ? [80, 554, 8000] : (device.name.hasPrefix("NAS") ? [80, 443, 445, 5000, 5001] : [])
+            return KnownService.common.filter { ports.contains($0.port) }
+        }
+        guard let ip = device.ipAddress else { return nil }
+        return await ServiceProbe().openServices(host: ip)
+    }
+
+    /// Asks the router to wake the device. Returns a plain-German error, or nil on success.
+    func wakeUp(_ device: Device) async -> String? {
+        guard let mac = device.macAddress, let router = currentRouter(), router.capabilities.contains(.wakeOnLAN) else {
+            return "Dieses Gerät lässt sich nicht aufwecken."
+        }
+        do {
+            try await router.wakeUp(macAddress: mac)
+            return nil
+        } catch {
+            return (error as? LocalizedError)?.errorDescription ?? "Die FRITZ!Box hat das Aufwecken abgelehnt."
+        }
+    }
+
     func liveThroughput() async -> LiveThroughput? {
         guard let router = currentRouter(), router.capabilities.contains(.liveThroughput) else { return nil }
         return try? await router.readLiveThroughput()
@@ -220,6 +337,8 @@ final class AppModel {
         let result = try await SpeedTester().run(onSample: onSample)
         lastSpeed = result
         defaults.set(try? JSONEncoder().encode(result), forKey: Key.lastSpeed)
+        speedHistory.append(result)
+        defaults.set(try? JSONEncoder().encode(speedHistory), forKey: Key.speedHistory)
         if let snapshot {
             findings = engine.findings(for: snapshot, phoneSpeedMbps: result.downloadMbps)
         }
@@ -234,9 +353,13 @@ final class AppModel {
         snapshot = nil
         findings = []
         newDeviceIDs = []
-        // A report belongs to the network it was heard in.
+        // A report and a history belong to the network they were taken in.
+        presenceLog = PresenceLog()
+        presenceStore.delete()
         listenReport = nil
         defaults.removeObject(forKey: Key.listenReport)
+        signalWalk = SignalWalk()
+        defaults.removeObject(forKey: Key.signalWalk)
         mode = .onboarding
         writeWidgetSummary()
     }
@@ -244,11 +367,14 @@ final class AppModel {
     /// Removes everything Netzblick stored on this iPhone.
     func deleteAll() {
         disconnect()
-        for key in [Key.knownDeviceIDs, Key.lastSpeed, Key.listenReport, Key.bookedDownloadMbps, Key.accentBlue, "appearance"] {
+        for key in [Key.knownDeviceIDs, Key.lastSpeed, Key.speedHistory, Key.signalWalk, Key.listenReport, Key.bookedDownloadMbps, Key.accentBlue, "appearance"] {
             defaults.removeObject(forKey: key)
         }
         lastSpeed = nil
+        speedHistory = SpeedHistory()
+        signalWalk = SignalWalk()
         listenReport = nil
+        NewDeviceAlerts.reset()
         if let url = SharedContainer.summaryURL() {
             try? FileManager.default.removeItem(at: url)
         }
@@ -311,6 +437,12 @@ final class AppModel {
         self.snapshot = snapshot
         newDeviceIDs = newIDs
         findings = engine.findings(for: snapshot, phoneSpeedMbps: lastSpeed?.downloadMbps)
+        if isDemo {
+            presenceLog = DemoHousehold.presenceLog(now: snapshot.takenAt)
+        } else {
+            presenceLog.record(snapshot)
+            presenceStore.save(presenceLog)
+        }
         writeWidgetSummary()
     }
 

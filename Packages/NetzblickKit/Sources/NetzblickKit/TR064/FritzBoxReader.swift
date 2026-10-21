@@ -46,7 +46,7 @@ public struct FritzBoxReader: RouterAdapter {
         }
 
         // 4. Wi-Fi radios and who is associated with them.
-        let (radios, wifiLinks, wifiWarning) = await readWLAN(catalog)
+        let (radios, wifiLinks, wlanSecurity, wifiWarning) = await readWLAN(catalog)
         if let wifiWarning { warnings.append(wifiWarning) }
 
         // 5. Host list.
@@ -60,7 +60,11 @@ public struct FritzBoxReader: RouterAdapter {
             warnings.append("Die Geräteliste konnte nicht gelesen werden.")
         }
 
-        return HouseholdSnapshot(takenAt: now, box: box, wan: wan, radios: radios, devices: devices, warnings: warnings)
+        // 6. Security settings. Read-only and silent: what fails shows up as "nicht lesbar".
+        let security = await readSecurity(catalog, wlans: wlanSecurity)
+
+        return HouseholdSnapshot(takenAt: now, box: box, wan: wan, radios: radios, devices: devices,
+                                 security: security, warnings: warnings)
     }
 
     /// Current up/down traffic on the internet line.
@@ -73,14 +77,43 @@ public struct FritzBoxReader: RouterAdapter {
         return LiveThroughput(downstreamMbps: down * 8 / 1_000_000, upstreamMbps: up * 8 / 1_000_000)
     }
 
+    /// The box sends the magic packet itself, so the iPhone needs no broadcast rights.
+    public func wakeUp(macAddress: String) async throws {
+        let catalog = try await client.loadCatalog()
+        _ = try await client.call(catalog, "Hosts", action: "X_AVM-DE_WakeOnLANByMACAddress",
+                                  arguments: [("NewMACAddress", macAddress)])
+    }
+
+    /// A few small calls instead of the whole host list, so it can run every couple of seconds.
+    // VERIFY: X_AVM-DE_GetSpecificHostEntryByIP and GetSpecificAssociatedDeviceInfo field names on FRITZ!OS 8.x.
+    public func readWiFiLink(ip: String) async throws -> WiFiLink? {
+        let catalog = try await client.loadCatalog()
+        let host = try await client.call(catalog, "Hosts", action: "X_AVM-DE_GetSpecificHostEntryByIP",
+                                         arguments: [("NewIPAddress", ip)])
+        guard let mac = host["NewMACAddress"], !mac.isEmpty else { return nil }
+        for entry in catalog.instances(of: "WLANConfiguration") {
+            // A radio the device is not associated with answers with a fault; try the next one.
+            guard let info = try? await client.call(entry.service, action: "GetSpecificAssociatedDeviceInfo",
+                                                    arguments: [("NewAssociatedDeviceMACAddress", mac)]) else { continue }
+            let radio = try? await client.call(entry.service, action: "GetInfo")
+            let band = Self.band(instance: entry.instance, channel: Int(radio?["NewChannel"] ?? ""),
+                                 frequencyField: radio?["NewX_AVM-DE_FrequencyBand"])
+            return WiFiLink(band: band,
+                            signalPercent: Int(info["NewX_AVM-DE_SignalStrength"] ?? ""),
+                            rateMbps: Int(info["NewX_AVM-DE_Speed"] ?? ""))
+        }
+        return nil
+    }
+
     // MARK: - Wi-Fi
 
-    private func readWLAN(_ catalog: ServiceCatalog) async -> ([WLANRadio], [String: WiFiLink], String?) {
+    private func readWLAN(_ catalog: ServiceCatalog) async -> ([WLANRadio], [String: WiFiLink], [WLANSecurity], String?) {
         let instances = catalog.instances(of: "WLANConfiguration")
-        guard !instances.isEmpty else { return ([], [:], "Die WLAN-Daten konnten nicht gelesen werden.") }
+        guard !instances.isEmpty else { return ([], [:], [], "Die WLAN-Daten konnten nicht gelesen werden.") }
 
         var radios: [WLANRadio] = []
         var links: [String: WiFiLink] = [:]
+        var security: [WLANSecurity] = []
         var failed = false
         var firstSSID: String?
 
@@ -96,12 +129,17 @@ public struct FritzBoxReader: RouterAdapter {
             // VERIFY: the guest network is usually the last instance and has its own SSID.
             let isGuest = instances.count >= 3 && index == instances.count - 1 && ssid != firstSSID
             radios.append(WLANRadio(band: band, isEnabled: info["NewEnable"] == "1", channel: channel, ssid: ssid, isGuest: isGuest))
+            // Only the encryption type; the Wi-Fi password (GetSecurityKeys) is never read.
+            security.append(WLANSecurity(
+                band: band, ssid: ssid, isGuest: isGuest, isEnabled: info["NewEnable"] == "1",
+                encryption: WiFiEncryption.fromBeacon(info["NewBeaconType"], basicEncryption: info["NewBasicEncryptionModes"])
+            ))
 
             for (mac, link) in await readAssociations(entry.service, band: band) {
                 links[mac] = link
             }
         }
-        return (radios, links, failed ? "Ein Teil der WLAN-Daten fehlt." : nil)
+        return (radios, links, security, failed ? "Ein Teil der WLAN-Daten fehlt." : nil)
     }
 
     private func readAssociations(_ service: TR064Service, band: WiFiBand) async -> [String: WiFiLink] {
@@ -191,7 +229,8 @@ public struct FritzBoxReader: RouterAdapter {
             connection: connection
         )
         device.vendor = mac.flatMap { classifier.vendor(forMAC: $0) }
-        device.category = classifier.category(for: device)
+        device.kind = classifier.kind(for: device)
+        device.category = device.kind.category
         return device
     }
 

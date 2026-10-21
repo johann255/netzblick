@@ -68,6 +68,7 @@ public enum DeviceCategory: String, Codable, Sendable, CaseIterable {
     case phoneTablet
     case computer
     case smartHome
+    case camera
     case printer
     case network
 
@@ -79,6 +80,7 @@ public enum DeviceCategory: String, Codable, Sendable, CaseIterable {
         case .phoneTablet: return "Handys & Tablets"
         case .computer: return "Computer"
         case .smartHome: return "Smart Home"
+        case .camera: return "Kameras"
         case .printer: return "Drucker"
         case .network: return "Netzwerk"
         }
@@ -92,6 +94,7 @@ public enum DeviceCategory: String, Codable, Sendable, CaseIterable {
         case .phoneTablet: return "iphone"
         case .computer: return "laptopcomputer"
         case .smartHome: return "house"
+        case .camera: return "video"
         case .printer: return "printer"
         case .network: return "wifi.router"
         }
@@ -105,8 +108,9 @@ public enum DeviceCategory: String, Codable, Sendable, CaseIterable {
         case .phoneTablet: return 2
         case .computer: return 3
         case .smartHome: return 4
-        case .printer: return 5
-        case .network: return 6
+        case .camera: return 5
+        case .printer: return 6
+        case .network: return 7
         }
     }
 }
@@ -127,6 +131,8 @@ public struct Device: Identifiable, Hashable, Codable, Sendable {
     /// Manufacturer derived from the MAC address prefix, if known.
     public var vendor: String?
     public var category: DeviceCategory
+    /// Finer guess than the category, for the icon and the "Gerätetyp" line.
+    public var kind: DeviceKind
     /// Bonjour service types seen for this device, e.g. "_sonos._tcp".
     public var bonjourServices: [String]
 
@@ -140,6 +146,7 @@ public struct Device: Identifiable, Hashable, Codable, Sendable {
         connection: Connection = .unknown,
         vendor: String? = nil,
         category: DeviceCategory = .unknown,
+        kind: DeviceKind? = nil,
         bonjourServices: [String] = []
     ) {
         self.id = id
@@ -151,6 +158,7 @@ public struct Device: Identifiable, Hashable, Codable, Sendable {
         self.connection = connection
         self.vendor = vendor
         self.category = category
+        self.kind = kind ?? DeviceKind.generic(for: category)
         self.bonjourServices = bonjourServices
     }
 
@@ -158,6 +166,11 @@ public struct Device: Identifiable, Hashable, Codable, Sendable {
     public static func makeID(mac: String?, ip: String?) -> String {
         if let mac, !mac.isEmpty { return mac.uppercased() }
         return "ip:\(ip ?? UUID().uuidString)"
+    }
+
+    /// Icon for this device: the kind if known, otherwise the category.
+    public var symbolName: String {
+        kind == .unknown ? category.symbolName : kind.symbolName
     }
 
     public var wifi: WiFiLink? {

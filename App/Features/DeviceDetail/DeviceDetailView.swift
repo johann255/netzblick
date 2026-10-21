@@ -22,6 +22,11 @@ struct DeviceDetailView: View {
                     newCard(device)
                 }
 
+                if !device.isGuest {
+                    historySection(device)
+                    DeviceToolsSection(device: device)
+                }
+
                 let related = relatedFindings(for: device)
                 if !related.isEmpty {
                     findingsSection(related)
@@ -98,6 +103,64 @@ struct DeviceDetailView: View {
         }
     }
 
+    // MARK: - Verlauf
+
+    private static let eventFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "de_DE")
+        formatter.dateFormat = "EEE, d. MMM, HH:mm"
+        return formatter
+    }()
+
+    private func historySection(_ device: Device) -> some View {
+        let events = model.presenceLog.events(for: device.id, limit: 8)
+        let hours = model.presenceLog.onlineHours(for: device.id)
+
+        return VStack(alignment: .leading, spacing: 12) {
+            NBSectionTitle("Verlauf")
+
+            NBCard {
+                VStack(alignment: .leading, spacing: 0) {
+                    factRow("Zuletzt online", value: lastSeenText(device))
+
+                    if !hours.isEmpty {
+                        NBRowDivider()
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Meist online um")
+                                .font(.nbSans(15))
+                                .foregroundStyle(Color.nbInk)
+                            HourStrip(hours: hours)
+                        }
+                        .padding(16)
+                    }
+
+                    ForEach(Array(events.enumerated()), id: \.offset) { _, event in
+                        NBRowDivider()
+                        factRow(event.title,
+                                value: Self.eventFormatter.string(from: event.at))
+                    }
+
+                    if events.isEmpty {
+                        NBRowDivider()
+                        Text("Noch keine Wechsel gesehen. Netzblick merkt sich bei jedem Abruf, wer online ist.")
+                            .font(.nbSans(13))
+                            .foregroundStyle(Color.nbMuted)
+                            .padding(16)
+                    }
+                }
+            }
+        }
+    }
+
+    private func lastSeenText(_ device: Device) -> String {
+        if device.isActive { return "jetzt" }
+        guard let date = model.presenceLog.lastSeen[device.id] else { return "nicht gesehen" }
+        let formatter = RelativeDateTimeFormatter()
+        formatter.locale = Locale(identifier: "de_DE")
+        formatter.unitsStyle = .full
+        return formatter.localizedString(for: date, relativeTo: Date())
+    }
+
     // MARK: - Header
 
     @ViewBuilder
@@ -121,6 +184,10 @@ struct DeviceDetailView: View {
             NBCard {
                 VStack(spacing: 0) {
                     factRow("Status", value: device.isActive ? "Online" : "Schläft gerade")
+                    if device.kind != .unknown {
+                        NBRowDivider()
+                        factRow("Gerätetyp", value: device.kind.title, note: "geschätzt aus Name, Hersteller und Diensten")
+                    }
                     NBRowDivider()
                     factRow("Verbindung", value: connectionText(device.connection))
 
@@ -273,4 +340,33 @@ struct DeviceDetailView: View {
         DeviceDetailView(deviceID: "preview")
     }
     .environment(AppModel())
+}
+
+/// 24 small cells, filled where the device was online at that hour.
+private struct HourStrip: View {
+    let hours: Set<Int>
+    @Environment(\.nbAccent) private var accent
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 2) {
+                ForEach(0..<24, id: \.self) { hour in
+                    RoundedRectangle(cornerRadius: 2, style: .continuous)
+                        .fill(hours.contains(hour) ? accent : Color.nbLine)
+                        .frame(height: 14)
+                }
+            }
+            HStack {
+                Text("0 Uhr")
+                Spacer()
+                Text("12")
+                Spacer()
+                Text("23")
+            }
+            .font(.nbSans(11))
+            .foregroundStyle(Color.nbMuted)
+        }
+        .accessibilityElement()
+        .accessibilityLabel("Online um " + hours.sorted().map { "\($0) Uhr" }.joined(separator: ", "))
+    }
 }

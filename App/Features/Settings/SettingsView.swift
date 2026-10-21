@@ -4,6 +4,7 @@ struct SettingsView: View {
     @AppStorage("accentBlue") private var accentRaw = AccentBlue.ultramarin.rawValue
     @AppStorage("appearance") private var appearance = "system"
     @AppStorage("bookedDownloadMbps") private var bookedText = ""
+    @AppStorage(NewDeviceAlerts.enabledKey) private var notifyNewDevices = false
 
     @State private var confirmDelete = false
 
@@ -43,6 +44,9 @@ struct SettingsView: View {
 
             NBSectionTitle("FRITZ!Box")
             boxCard
+
+            NBSectionTitle("Wachhund")
+            watchdogCard
 
             NBSectionTitle("Was Netzblick kann – und was nicht")
             LimitsView()
@@ -144,6 +148,39 @@ struct SettingsView: View {
                 }
                 .buttonStyle(.plain)
             }
+        }
+    }
+
+    // MARK: - Wachhund
+
+    private var watchdogCard: some View {
+        NBCard {
+            VStack(alignment: .leading, spacing: 8) {
+                Toggle(isOn: Binding(
+                    get: { notifyNewDevices },
+                    set: { wanted in
+                        guard wanted else {
+                            notifyNewDevices = false
+                            NewDeviceAlerts.schedule()
+                            return
+                        }
+                        Task {
+                            notifyNewDevices = await NewDeviceAlerts.requestPermission()
+                            NewDeviceAlerts.schedule()
+                        }
+                    }
+                )) {
+                    Text("Bei neuen Geräten melden")
+                        .font(.nbSans(16))
+                        .foregroundStyle(Color.nbInk)
+                }
+
+                Text("Netzblick fragt ab und zu im Hintergrund die FRITZ!Box und meldet Geräte, die du noch nicht kennst. Wie oft, entscheidet iOS. Nur im Heim-WLAN, nichts verlässt dein iPhone.")
+                    .font(.nbSans(13))
+                    .foregroundStyle(Color.nbMuted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(16)
         }
     }
 
