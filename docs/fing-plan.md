@@ -10,8 +10,9 @@ löst Netzblick über die FRITZ!Box (TR-064), über das iPhone selbst oder mit m
   Einziger externer Kontakt bleibt der Tempo-Test (M-Lab), vorher angekündigt.
 - **Die FRITZ!Box ist die Fingbox.** Sie läuft rund um die Uhr, kennt alle Geräte und führt ein
   Ereignisprotokoll. Netzblick liest das ab, statt selbst Dauerüberwachung zu simulieren.
-- **v1.0 ändert nichts an der Box.** Sperren, Pausieren und Aufwecken schreiben in die Box und
-  kommen frühestens in v1.1, jeweils nur nach Bestätigung im Dialog.
+- **v1.0 ändert nichts an der Box.** Sperren und Pausieren schreiben in die Box und kommen
+  frühestens in v1.1, nur nach Bestätigung im Dialog. Aufwecken ändert keine Einstellung und ist
+  in v1.0 dabei, ebenfalls mit Bestätigung (Standard, solange Johann nichts anderes sagt).
 - **Grenzen-Text wächst mit.** Jede neue Fähigkeit bekommt ihre Zeile in `LimitsView`.
 
 ## Abbildung
@@ -32,7 +33,7 @@ Legende: ✅ vorhanden · 🔨 in Arbeit (dieser Plan, Phase 1–3) · 🕓 spä
 | Ping, Erreichbarkeit | Werkzeuge im Gerätedetail | ICMP über Datagramm-Socket (ohne Root erlaubt) | 🔨 Phase 3 |
 | Port-Scan eines Geräts | „Offene Dienste“ | TCP-Verbindungsversuche auf eine kurze Liste bekannter Ports | 🔨 Phase 3 |
 | Versteckte Kameras finden | Kamera-Suche | Hersteller-Tabelle + offene Kamera-Ports (RTSP 554, ONVIF 8000/8899) | 🔨 Phase 3 |
-| Wake on LAN | Gerät aufwecken | Über die Box (`Hosts:1#X_AVM-DE_WakeOnLANByMACAddress`), kein Broadcast nötig. Schreibt nichts um, löst nur ein Paket aus | 🔨 Phase 3 (❓ zählt das als „Änderung an der Box“?) |
+| Wake on LAN | Gerät aufwecken | Über die Box (`Hosts:1#X_AVM-DE_WakeOnLANByMACAddress`), kein Broadcast nötig. Schreibt nichts um, löst nur ein Paket aus | ✅ mit Bestätigung |
 | DNS-Abfrage, Traceroute | Werkzeuge | `getaddrinfo`; Traceroute über ICMP mit TTL | 🕓 |
 | Bonjour/UPnP/NetBIOS-Browser | Dienste im Gerätedetail | Bonjour ist da; UPnP/SSDP braucht Multicast-Berechtigung von Apple | 🕓 |
 | Speedtest | Tempo-Test | M-Lab ndt7 | ✅ |
