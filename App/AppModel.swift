@@ -23,6 +23,8 @@ final class AppModel {
     private(set) var lastSpeed: SpeedResult?
     /// Every speed test on this iPhone, oldest first.
     private(set) var speedHistory = SpeedHistory()
+    /// Rooms noted during the Wi-Fi walk; kept until "Neu beginnen" so the map survives closing the sheet.
+    private(set) var signalWalk = SignalWalk()
     /// Who was online when; only devices of the home network, kept 30 days on this iPhone.
     private(set) var presenceLog = PresenceLog()
 
@@ -48,6 +50,7 @@ final class AppModel {
         static let knownDeviceIDs = "knownDeviceIDs"
         static let lastSpeed = "lastSpeed"
         static let speedHistory = "speedHistory"
+        static let signalWalk = "signalWalk"
         static let listenReport = "listenReport"
         static let bookedDownloadMbps = "bookedDownloadMbps"
         static let accentBlue = "accentBlue"
@@ -56,6 +59,9 @@ final class AppModel {
     init() {
         if let data = defaults.data(forKey: Key.lastSpeed) {
             lastSpeed = try? JSONDecoder().decode(SpeedResult.self, from: data)
+        }
+        if let data = defaults.data(forKey: Key.signalWalk) {
+            signalWalk = (try? JSONDecoder().decode(SignalWalk.self, from: data)) ?? SignalWalk()
         }
         if let data = defaults.data(forKey: Key.speedHistory),
            let history = try? JSONDecoder().decode(SpeedHistory.self, from: data) {
@@ -255,6 +261,25 @@ final class AppModel {
         currentRouter()?.capabilities.contains(.wifiSurvey) ?? false
     }
 
+    func noteRoom(_ name: String, link: WiFiLink) {
+        signalWalk.note(name, link: link)
+        saveWalk()
+    }
+
+    func removeRoom(id: UUID) {
+        signalWalk.remove(id: id)
+        saveWalk()
+    }
+
+    func resetWalk() {
+        signalWalk.reset()
+        saveWalk()
+    }
+
+    private func saveWalk() {
+        defaults.set(try? JSONEncoder().encode(signalWalk), forKey: Key.signalWalk)
+    }
+
     /// The signal the router reports for this iPhone right now; nil if it is not on Wi-Fi or the box does not say.
     func ownWiFiLink() async -> WiFiLink? {
         guard let router = currentRouter(), router.capabilities.contains(.wifiSurvey) else { return nil }
@@ -333,6 +358,8 @@ final class AppModel {
         presenceStore.delete()
         listenReport = nil
         defaults.removeObject(forKey: Key.listenReport)
+        signalWalk = SignalWalk()
+        defaults.removeObject(forKey: Key.signalWalk)
         mode = .onboarding
         writeWidgetSummary()
     }
@@ -340,11 +367,12 @@ final class AppModel {
     /// Removes everything Netzblick stored on this iPhone.
     func deleteAll() {
         disconnect()
-        for key in [Key.knownDeviceIDs, Key.lastSpeed, Key.speedHistory, Key.listenReport, Key.bookedDownloadMbps, Key.accentBlue, "appearance"] {
+        for key in [Key.knownDeviceIDs, Key.lastSpeed, Key.speedHistory, Key.signalWalk, Key.listenReport, Key.bookedDownloadMbps, Key.accentBlue, "appearance"] {
             defaults.removeObject(forKey: key)
         }
         lastSpeed = nil
         speedHistory = SpeedHistory()
+        signalWalk = SignalWalk()
         listenReport = nil
         NewDeviceAlerts.reset()
         if let url = SharedContainer.summaryURL() {

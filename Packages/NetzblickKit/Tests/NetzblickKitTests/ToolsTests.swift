@@ -80,32 +80,67 @@ final class WakeOnLANTests: XCTestCase {
 }
 
 final class SignalWalkTests: XCTestCase {
-    private func link(_ signal: Int) -> WiFiLink { WiFiLink(band: .ghz5, signalPercent: signal) }
+    private func link(_ signal: Int, rate: Int = 400) -> WiFiLink { WiFiLink(band: .ghz5, signalPercent: signal, rateMbps: rate) }
 
-    func testVerdictNamesWeakRoom() {
+    func testRepeaterGoesToGoodRoomNearTheWeakOne() {
         var walk = SignalWalk()
-        walk.note("Wohnzimmer", link: link(80))
+        walk.note("Wohnzimmer", link: link(85))
         XCTAssertNil(walk.verdict, "one place is not enough")
+        walk.note("Flur", link: link(60))
+        walk.note("Küche", link: link(70))
         walk.note("Bad", link: link(20))
-        XCTAssertEqual(walk.ranked.map(\.name), ["Wohnzimmer", "Bad"])
-        XCTAssertTrue(walk.verdict?.contains("„Bad“ ist das WLAN schwach") ?? false)
+        XCTAssertEqual(walk.boxRoom?.name, "Wohnzimmer")
+        XCTAssertEqual(walk.weakRooms.map(\.name), ["Bad"])
+        XCTAssertEqual(walk.repeaterRoom?.name, "Flur")
+        XCTAssertTrue(walk.verdict?.hasPrefix("Stell den Repeater in den Raum „Flur“") ?? false)
     }
 
-    func testSameRoomReplacesAndEmptyNameGetsNumber() {
+    func testRepeaterPrefersTheProblemFloor() {
         var walk = SignalWalk()
-        walk.note("Küche", link: link(40))
-        walk.note("küche", link: link(70))
+        walk.note("Wohnzimmer", link: link(90))
+        walk.note("Küche", link: link(58))
+        walk.note("Dachboden Büro", link: link(65))
+        walk.note("Dachboden", link: link(15))
+        XCTAssertEqual(walk.repeaterRoom?.name, "Dachboden Büro")
+    }
+
+    func testOtherFloorWithoutCandidateSuggestsCable() {
+        var walk = SignalWalk()
+        walk.note("Wohnzimmer", link: link(80))
+        walk.note("Keller", link: link(10))
+        XCTAssertNil(walk.repeaterRoom)
+        XCTAssertTrue(walk.verdict?.contains("Powerline") ?? false)
+    }
+
+    func testSamplesAreAveragedPerRoom() {
+        var walk = SignalWalk()
+        walk.note("Küche", link: link(40, rate: 200))
+        walk.note("küche", link: link(61, rate: 300))
         walk.note("  ", link: link(90))
         XCTAssertEqual(walk.spots.count, 2)
+        XCTAssertEqual(walk.spots.first?.signalPercent, 51)
+        XCTAssertEqual(walk.spots.first?.rateMbps, 250)
         XCTAssertEqual(walk.spots.last?.name, "Ort 2")
-        XCTAssertEqual(walk.ranked.first?.link.signalPercent, 90)
     }
 
     func testAllStrong() {
         var walk = SignalWalk()
         walk.note("A", link: link(80))
         walk.note("B", link: link(75))
-        XCTAssertEqual(walk.verdict, "Überall starkes Signal. Am WLAN liegt es nicht.")
+        XCTAssertEqual(walk.verdict, "Überall starkes Signal. Ein Repeater bringt hier nichts.")
+    }
+
+    func testFloorsFromNamesAndOrder() {
+        XCTAssertEqual(Floor.guess(for: "Keller"), .basement)
+        XCTAssertEqual(Floor.guess(for: "Dachboden"), .attic)
+        XCTAssertEqual(Floor.guess(for: "Bad OG"), .upper)
+        XCTAssertEqual(Floor.guess(for: "Wohnzimmer"), .ground)
+        XCTAssertEqual(Floor.guess(for: "Yoga-Raum"), .ground, "\"og\" inside a word is not a storey")
+        var walk = SignalWalk()
+        walk.note("Keller", link: link(30))
+        walk.note("Dachboden", link: link(50))
+        walk.note("Küche", link: link(70))
+        XCTAssertEqual(walk.floors.map(\.floor), [.attic, .ground, .basement])
     }
 
     func testReaderFindsOwnLink() async throws {

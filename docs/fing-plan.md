@@ -41,7 +41,7 @@ Legende: ✅ vorhanden · 🔨 in Arbeit (dieser Plan, Phase 1–3) · 🕓 spä
 | Internet-Ausfälle | Ausfall-Verlauf | Ereignisprotokoll der Box (`DeviceInfo:1#GetDeviceLog`) auswerten | 🕓 (DSL-Werte macht der Mac-Thread) |
 | ISP-Ausfallkarte (Community) | – | braucht Daten anderer Nutzer, also Telemetrie | ⛔ bewusst nicht |
 | Bandbreite pro Gerät | Wer verbraucht was | Mitschnitt der Box, Bytes pro Gerät zählen | 🕓 (baut auf Lauschmodus auf) |
-| WLAN-Sweet-Spot | WLAN-Messgang | eigenes Signal des iPhones live von der Box (`GetSpecificAssociatedDeviceInfo`), Räume merken, Empfehlung | ✅ |
+| WLAN-Sweet-Spot | WLAN-Messgang | eigenes Signal des iPhones live von der Box (`GetSpecificAssociatedDeviceInfo`), Raum-Buttons (Wohnzimmer, Küche, Büro …), Mini-Ansicht nach Stockwerk mit Repeater-Platz | ✅ |
 | Gerät blockieren, Internet pausieren | Sperren | `X_AVM-DE_HostFilter:1#DisallowWANAccessByIP` | ❓ v1.1, schreibt in die Box |
 | Zeitpläne, Kindersicherung | Zugangsprofile | FRITZ!-Zugangsprofile; App erklärt, Box setzt um | ❓ v1.1 |
 | Netz-Sperre für Unbekannte | – | FRITZ!Box: „Neue Geräte nur nach Freigabe“ erklären | 🕓 als Finding |
@@ -56,7 +56,7 @@ Legende: ✅ vorhanden · 🔨 in Arbeit (dieser Plan, Phase 1–3) · 🕓 spä
 2. **Verlauf und Wachhund** (Phase 2). Geräteverlauf im Kit, Hintergrundabruf, lokale Mitteilung
    bei neuem Gerät, „zuletzt gesehen“ im Gerätedetail.
 3. **Werkzeuge** (Phase 3). Ping, offene Dienste, Kamera-Suche, Wake on LAN.
-4. Danach: Tempo- und Ausfall-Verlauf, volle OUI-Liste, WLAN-Messgang, Bandbreite pro Gerät.
+4. Erledigt danach: Tempo-Verlauf, WLAN-Messgang. Offen: Ausfall-Verlauf, volle OUI-Liste, Bandbreite pro Gerät.
 
 ## Was Johann entscheiden muss
 
