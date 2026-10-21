@@ -28,8 +28,10 @@ public struct RouterCapabilities: OptionSet, Hashable, Sendable {
     public static let securityCheck = RouterCapabilities(rawValue: 1 << 6)
     /// Waking a sleeping device (Wake on LAN) through the router.
     public static let wakeOnLAN = RouterCapabilities(rawValue: 1 << 7)
+    /// Live signal of one Wi-Fi client, for the walk through the home.
+    public static let wifiSurvey = RouterCapabilities(rawValue: 1 << 8)
 
-    public static let all: RouterCapabilities = [.devices, .wifiDetails, .lineStatus, .liveThroughput, .firmwareStatus, .dnsListening, .securityCheck, .wakeOnLAN]
+    public static let all: RouterCapabilities = [.devices, .wifiDetails, .lineStatus, .liveThroughput, .firmwareStatus, .dnsListening, .securityCheck, .wakeOnLAN, .wifiSurvey]
 }
 
 /// Current traffic through the internet line, as reported by the router.
@@ -61,6 +63,10 @@ public protocol RouterAdapter: Sendable {
     /// Asks the router to send a Wake-on-LAN packet. Changes no setting.
     /// Only called if `capabilities` contains `.wakeOnLAN`.
     func wakeUp(macAddress: String) async throws
+
+    /// Current Wi-Fi link of the device with this IPv4 address (usually this iPhone); nil if it is not on Wi-Fi.
+    /// Only called if `capabilities` contains `.wifiSurvey`.
+    func readWiFiLink(ip: String) async throws -> WiFiLink?
 }
 
 public extension RouterAdapter {

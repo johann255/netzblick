@@ -18,4 +18,9 @@ public struct DemoRouter: RouterAdapter {
     public func wakeUp(macAddress: String) async throws {
         try await Task.sleep(for: .milliseconds(400))
     }
+
+    /// Wanders around a mid-strength signal so the walk screen has something to show.
+    public func readWiFiLink(ip: String) async throws -> WiFiLink? {
+        WiFiLink(band: .ghz5, signalPercent: Int.random(in: 35...85), rateMbps: Int.random(in: 200...860))
+    }
 }

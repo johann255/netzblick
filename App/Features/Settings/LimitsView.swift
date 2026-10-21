@@ -10,6 +10,7 @@ struct LimitsView: View {
                 "alle Geräte, die deine FRITZ!Box kennt, mit Name, Hersteller und Verbindungsart",
                 "wie gut dein WLAN funkt und wie schnell deine Leitung ist",
                 "beim Sicherheits-Check: WLAN-Verschlüsselung, Portfreigaben und Fernzugriff, aber nie dein WLAN-Passwort",
+                "beim WLAN-Messgang: wie stark die FRITZ!Box dieses iPhone gerade empfängt; die Räume bleiben nur, solange der Messgang offen ist",
                 "auf Knopfdruck: ob ein Gerät antwortet und welche bekannten Dienste es anbietet, nur im eigenen Heimnetz",
                 "beim Tempo-Test: wie viel am iPhone ankommt, gemessen über Measurement Lab (M-Lab)",
                 "im Lauschmodus: welche Adressen deine Geräte anfragen, sortiert nach Normal, Hersteller und Werbung & Tracking"

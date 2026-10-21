@@ -99,3 +99,38 @@ final class DemoPresenceTests: XCTestCase {
         XCTAssertEqual(log.events(for: newID).first?.kind, .joined)
     }
 }
+
+final class SpeedHistoryTests: XCTestCase {
+    private let now = Date(timeIntervalSince1970: 1_800_000_000)
+
+    private func result(_ mbps: Double, daysAgo: Double) -> SpeedResult {
+        SpeedResult(downloadMbps: mbps, measuredAt: now.addingTimeInterval(-daysAgo * 86400), bytes: 0, duration: 10)
+    }
+
+    func testMedianAndSummary() {
+        var history = SpeedHistory()
+        history.append(result(100, daysAgo: 40)) // too old for the 30-day view
+        history.append(result(90, daysAgo: 3))
+        history.append(result(10, daysAgo: 2))
+        history.append(result(80, daysAgo: 1))
+        XCTAssertEqual(history.medianMbps(now: now), 80)
+        XCTAssertEqual(history.summary(bookedMbps: 100, now: now), "Typisch in den letzten 30 Tagen: 80 Mbit/s (3 Messungen, 1 davon langsam).")
+        XCTAssertEqual(history.latest?.downloadMbps, 80)
+    }
+
+    func testNoSummaryForOneMeasurement() {
+        var history = SpeedHistory()
+        history.append(result(50, daysAgo: 0))
+        XCTAssertNil(history.summary(bookedMbps: nil, now: now))
+    }
+
+    func testCapAndOrder() {
+        var history = SpeedHistory()
+        for i in 0..<(SpeedHistory.maxCount + 5) { history.append(result(Double(i), daysAgo: 0)) }
+        XCTAssertEqual(history.results.count, SpeedHistory.maxCount)
+        XCTAssertEqual(history.results.first?.downloadMbps, 5)
+        XCTAssertEqual(history.recent(3).map(\.downloadMbps), [102, 103, 104])
+        let sorted = SpeedHistory(results: [result(1, daysAgo: 1), result(2, daysAgo: 2)])
+        XCTAssertEqual(sorted.results.map(\.downloadMbps), [2, 1])
+    }
+}

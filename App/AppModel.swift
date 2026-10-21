@@ -21,6 +21,8 @@ final class AppModel {
     /// Plain-German error for the last failed reading, shown as a banner.
     var errorMessage: String?
     private(set) var lastSpeed: SpeedResult?
+    /// Every speed test on this iPhone, oldest first.
+    private(set) var speedHistory = SpeedHistory()
     /// Who was online when; only devices of the home network, kept 30 days on this iPhone.
     private(set) var presenceLog = PresenceLog()
 
@@ -45,6 +47,7 @@ final class AppModel {
         static let demoMode = "demoMode"
         static let knownDeviceIDs = "knownDeviceIDs"
         static let lastSpeed = "lastSpeed"
+        static let speedHistory = "speedHistory"
         static let listenReport = "listenReport"
         static let bookedDownloadMbps = "bookedDownloadMbps"
         static let accentBlue = "accentBlue"
@@ -53,6 +56,13 @@ final class AppModel {
     init() {
         if let data = defaults.data(forKey: Key.lastSpeed) {
             lastSpeed = try? JSONDecoder().decode(SpeedResult.self, from: data)
+        }
+        if let data = defaults.data(forKey: Key.speedHistory),
+           let history = try? JSONDecoder().decode(SpeedHistory.self, from: data) {
+            speedHistory = history
+        } else if let lastSpeed {
+            // Measurements from before the history existed.
+            speedHistory.append(lastSpeed)
         }
         if let data = defaults.data(forKey: Key.listenReport) {
             listenReport = try? JSONDecoder().decode(ListenReport.self, from: data)
@@ -241,6 +251,18 @@ final class AppModel {
 
     // MARK: Tools
 
+    var canWalkSignal: Bool {
+        currentRouter()?.capabilities.contains(.wifiSurvey) ?? false
+    }
+
+    /// The signal the router reports for this iPhone right now; nil if it is not on Wi-Fi or the box does not say.
+    func ownWiFiLink() async -> WiFiLink? {
+        guard let router = currentRouter(), router.capabilities.contains(.wifiSurvey) else { return nil }
+        let ip = isDemo ? "192.168.178.28" : LocalAddress.wifiIPv4()
+        guard let ip else { return nil }
+        return try? await router.readWiFiLink(ip: ip)
+    }
+
     var canWakeDevices: Bool {
         currentRouter()?.capabilities.contains(.wakeOnLAN) ?? false
     }
@@ -290,6 +312,8 @@ final class AppModel {
         let result = try await SpeedTester().run(onSample: onSample)
         lastSpeed = result
         defaults.set(try? JSONEncoder().encode(result), forKey: Key.lastSpeed)
+        speedHistory.append(result)
+        defaults.set(try? JSONEncoder().encode(speedHistory), forKey: Key.speedHistory)
         if let snapshot {
             findings = engine.findings(for: snapshot, phoneSpeedMbps: result.downloadMbps)
         }
@@ -316,10 +340,11 @@ final class AppModel {
     /// Removes everything Netzblick stored on this iPhone.
     func deleteAll() {
         disconnect()
-        for key in [Key.knownDeviceIDs, Key.lastSpeed, Key.listenReport, Key.bookedDownloadMbps, Key.accentBlue, "appearance"] {
+        for key in [Key.knownDeviceIDs, Key.lastSpeed, Key.speedHistory, Key.listenReport, Key.bookedDownloadMbps, Key.accentBlue, "appearance"] {
             defaults.removeObject(forKey: key)
         }
         lastSpeed = nil
+        speedHistory = SpeedHistory()
         listenReport = nil
         NewDeviceAlerts.reset()
         if let url = SharedContainer.summaryURL() {

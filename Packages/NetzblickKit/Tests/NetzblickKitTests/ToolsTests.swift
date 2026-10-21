@@ -78,3 +78,44 @@ final class WakeOnLANTests: XCTestCase {
         XCTAssertTrue(body.contains("<NewMACAddress>AA:BB:CC:DD:EE:FF</NewMACAddress>"))
     }
 }
+
+final class SignalWalkTests: XCTestCase {
+    private func link(_ signal: Int) -> WiFiLink { WiFiLink(band: .ghz5, signalPercent: signal) }
+
+    func testVerdictNamesWeakRoom() {
+        var walk = SignalWalk()
+        walk.note("Wohnzimmer", link: link(80))
+        XCTAssertNil(walk.verdict, "one place is not enough")
+        walk.note("Bad", link: link(20))
+        XCTAssertEqual(walk.ranked.map(\.name), ["Wohnzimmer", "Bad"])
+        XCTAssertTrue(walk.verdict?.contains("„Bad“ ist das WLAN schwach") ?? false)
+    }
+
+    func testSameRoomReplacesAndEmptyNameGetsNumber() {
+        var walk = SignalWalk()
+        walk.note("Küche", link: link(40))
+        walk.note("küche", link: link(70))
+        walk.note("  ", link: link(90))
+        XCTAssertEqual(walk.spots.count, 2)
+        XCTAssertEqual(walk.spots.last?.name, "Ort 2")
+        XCTAssertEqual(walk.ranked.first?.link.signalPercent, 90)
+    }
+
+    func testAllStrong() {
+        var walk = SignalWalk()
+        walk.note("A", link: link(80))
+        walk.note("B", link: link(75))
+        XCTAssertEqual(walk.verdict, "Überall starkes Signal. Am WLAN liegt es nicht.")
+    }
+
+    func testReaderFindsOwnLink() async throws {
+        let t = MockTransport.fullBox()
+        t.soap("/upnp/control/hosts", "X_AVM-DE_GetSpecificHostEntryByIP", ["NewMACAddress": "AA:BB:CC:00:00:01", "NewActive": "1"])
+        t.soap("/upnp/control/wlanconfig2", "GetSpecificAssociatedDeviceInfo", [
+            "NewAssociatedDeviceMACAddress": "AA:BB:CC:00:00:01",
+            "NewX_AVM-DE_SignalStrength": "64", "NewX_AVM-DE_Speed": "780"
+        ])
+        let link = try await FritzBoxReader(client: TR064Client(transport: t)).readWiFiLink(ip: "192.168.178.30")
+        XCTAssertEqual(link, WiFiLink(band: .ghz5, signalPercent: 64, rateMbps: 780))
+    }
+}

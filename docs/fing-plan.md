@@ -37,11 +37,11 @@ Legende: ✅ vorhanden · 🔨 in Arbeit (dieser Plan, Phase 1–3) · 🕓 spä
 | DNS-Abfrage, Traceroute | Werkzeuge | `getaddrinfo`; Traceroute über ICMP mit TTL | 🕓 |
 | Bonjour/UPnP/NetBIOS-Browser | Dienste im Gerätedetail | Bonjour ist da; UPnP/SSDP braucht Multicast-Berechtigung von Apple | 🕓 |
 | Speedtest | Tempo-Test | M-Lab ndt7 | ✅ |
-| Speedtest-Verlauf, Provider-Bewertung | Tempo-Verlauf | alle Messungen lokal, Vergleich mit Tarif | 🕓 |
+| Speedtest-Verlauf, Provider-Bewertung | Tempo-Verlauf | letzte 100 Messungen lokal, Balken in Ampelfarben, typischer Wert der letzten 30 Tage | ✅ |
 | Internet-Ausfälle | Ausfall-Verlauf | Ereignisprotokoll der Box (`DeviceInfo:1#GetDeviceLog`) auswerten | 🕓 (DSL-Werte macht der Mac-Thread) |
 | ISP-Ausfallkarte (Community) | – | braucht Daten anderer Nutzer, also Telemetrie | ⛔ bewusst nicht |
 | Bandbreite pro Gerät | Wer verbraucht was | Mitschnitt der Box, Bytes pro Gerät zählen | 🕓 (baut auf Lauschmodus auf) |
-| WLAN-Sweet-Spot | WLAN-Messgang | eigenes Signal des iPhones live aus der WLAN-Liste der Box | 🕓 |
+| WLAN-Sweet-Spot | WLAN-Messgang | eigenes Signal des iPhones live von der Box (`GetSpecificAssociatedDeviceInfo`), Räume merken, Empfehlung | ✅ |
 | Gerät blockieren, Internet pausieren | Sperren | `X_AVM-DE_HostFilter:1#DisallowWANAccessByIP` | ❓ v1.1, schreibt in die Box |
 | Zeitpläne, Kindersicherung | Zugangsprofile | FRITZ!-Zugangsprofile; App erklärt, Box setzt um | ❓ v1.1 |
 | Netz-Sperre für Unbekannte | – | FRITZ!Box: „Neue Geräte nur nach Freigabe“ erklären | 🕓 als Finding |

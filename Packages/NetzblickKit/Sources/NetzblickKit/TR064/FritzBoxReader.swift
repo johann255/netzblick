@@ -84,6 +84,27 @@ public struct FritzBoxReader: RouterAdapter {
                                   arguments: [("NewMACAddress", macAddress)])
     }
 
+    /// A few small calls instead of the whole host list, so it can run every couple of seconds.
+    // VERIFY: X_AVM-DE_GetSpecificHostEntryByIP and GetSpecificAssociatedDeviceInfo field names on FRITZ!OS 8.x.
+    public func readWiFiLink(ip: String) async throws -> WiFiLink? {
+        let catalog = try await client.loadCatalog()
+        let host = try await client.call(catalog, "Hosts", action: "X_AVM-DE_GetSpecificHostEntryByIP",
+                                         arguments: [("NewIPAddress", ip)])
+        guard let mac = host["NewMACAddress"], !mac.isEmpty else { return nil }
+        for entry in catalog.instances(of: "WLANConfiguration") {
+            // A radio the device is not associated with answers with a fault; try the next one.
+            guard let info = try? await client.call(entry.service, action: "GetSpecificAssociatedDeviceInfo",
+                                                    arguments: [("NewAssociatedDeviceMACAddress", mac)]) else { continue }
+            let radio = try? await client.call(entry.service, action: "GetInfo")
+            let band = Self.band(instance: entry.instance, channel: Int(radio?["NewChannel"] ?? ""),
+                                 frequencyField: radio?["NewX_AVM-DE_FrequencyBand"])
+            return WiFiLink(band: band,
+                            signalPercent: Int(info["NewX_AVM-DE_SignalStrength"] ?? ""),
+                            rateMbps: Int(info["NewX_AVM-DE_Speed"] ?? ""))
+        }
+        return nil
+    }
+
     // MARK: - Wi-Fi
 
     private func readWLAN(_ catalog: ServiceCatalog) async -> ([WLANRadio], [String: WiFiLink], [WLANSecurity], String?) {
